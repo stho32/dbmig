@@ -17,11 +17,95 @@ public class DatabaseInteractor
         try
         {
             _logger.LogInfo($"Clearing database with connection: {connectionString.Substring(0, Math.Min(50, connectionString.Length))}...");
-            
-            // TODO: Implement actual database clearing logic
-            
-            _logger.LogInfo("Database cleared successfully");
-            return new Result(true, "Database cleared successfully.");
+
+            using var connection = new Microsoft.Data.SqlClient.SqlConnection(connectionString);
+            connection.Open();
+            using var transaction = connection.BeginTransaction();
+            try
+            {
+                _logger.LogInfo("Starting to clear all user tables, views, procedures, and functions from database");
+
+                // 1. Drop all foreign key constraints
+                var dropFKsCmd = @"
+                    DECLARE @sql NVARCHAR(MAX) = N'';
+                    SELECT @sql += N'ALTER TABLE [' + s.name + '].[' + t.name + '] DROP CONSTRAINT [' + f.name + '];'
+                    FROM sys.foreign_keys f
+                    INNER JOIN sys.tables t ON f.parent_object_id = t.object_id
+                    INNER JOIN sys.schemas s ON t.schema_id = s.schema_id;
+                    EXEC sp_executesql @sql;
+                ";
+                using (var cmd = new Microsoft.Data.SqlClient.SqlCommand(dropFKsCmd, connection, transaction))
+                {
+                    cmd.ExecuteNonQuery();
+                }
+
+                // 2. Drop all tables (except system tables)
+                var dropTablesCmd = @"
+                    DECLARE @sql NVARCHAR(MAX) = N'';
+                    SELECT @sql += N'DROP TABLE [' + s.name + '].[' + t.name + '];'
+                    FROM sys.tables t
+                    INNER JOIN sys.schemas s ON t.schema_id = s.schema_id
+                    WHERE s.name NOT IN ('sys', 'INFORMATION_SCHEMA');
+                    EXEC sp_executesql @sql;
+                ";
+                using (var cmd = new Microsoft.Data.SqlClient.SqlCommand(dropTablesCmd, connection, transaction))
+                {
+                    cmd.ExecuteNonQuery();
+                }
+
+                // 3. Drop all views
+                var dropViewsCmd = @"
+                    DECLARE @sql NVARCHAR(MAX) = N'';
+                    SELECT @sql += N'DROP VIEW [' + s.name + '].[' + v.name + '];'
+                    FROM sys.views v
+                    INNER JOIN sys.schemas s ON v.schema_id = s.schema_id
+                    WHERE s.name NOT IN ('sys', 'INFORMATION_SCHEMA');
+                    EXEC sp_executesql @sql;
+                ";
+                using (var cmd = new Microsoft.Data.SqlClient.SqlCommand(dropViewsCmd, connection, transaction))
+                {
+                    cmd.ExecuteNonQuery();
+                }
+
+                // 4. Drop all stored procedures
+                var dropProcsCmd = @"
+                    DECLARE @sql NVARCHAR(MAX) = N'';
+                    SELECT @sql += N'DROP PROCEDURE [' + s.name + '].[' + p.name + '];'
+                    FROM sys.procedures p
+                    INNER JOIN sys.schemas s ON p.schema_id = s.schema_id
+                    WHERE s.name NOT IN ('sys', 'INFORMATION_SCHEMA');
+                    EXEC sp_executesql @sql;
+                ";
+                using (var cmd = new Microsoft.Data.SqlClient.SqlCommand(dropProcsCmd, connection, transaction))
+                {
+                    cmd.ExecuteNonQuery();
+                }
+
+                // 5. Drop all functions
+                var dropFuncsCmd = @"
+                    DECLARE @sql NVARCHAR(MAX) = N'';
+                    SELECT @sql += N'DROP FUNCTION [' + s.name + '].[' + f.name + '];'
+                    FROM sys.objects f
+                    INNER JOIN sys.schemas s ON f.schema_id = s.schema_id
+                    WHERE f.type IN ('FN', 'IF', 'TF') AND s.name NOT IN ('sys', 'INFORMATION_SCHEMA');
+                    EXEC sp_executesql @sql;
+                ";
+                using (var cmd = new Microsoft.Data.SqlClient.SqlCommand(dropFuncsCmd, connection, transaction))
+                {
+                    cmd.ExecuteNonQuery();
+                }
+
+                transaction.Commit();
+                _logger.LogInfo("All user tables, views, procedures, and functions cleared successfully");
+                _logger.LogInfo("Database cleared successfully");
+                return new Result(true, "Database cleared successfully.");
+            }
+            catch (Exception innerEx)
+            {
+                transaction.Rollback();
+                _logger.LogError("Failed to clear database (transaction rolled back)", innerEx);
+                return new Result(false, "Failed to clear database. Transaction rolled back. " + innerEx.Message);
+            }
         }
         catch (Exception ex)
         {
