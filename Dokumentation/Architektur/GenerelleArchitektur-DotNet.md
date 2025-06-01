@@ -60,3 +60,10 @@ End-to-End-Szenarien mit echter Datenbank:
 - Es gibt eine zentrale InteractorFactory in der BL-Bibliothek, über die Interaktoren für die Oberfläche durch Get...Interactor abgerufen werden können.
 - In der IntegrationTests und Tests Bibliothek gibt es nach Wunsch eigene Interactor-Factories die dann die Tests auf höchster Ebene ausführen.
 - Versuche für Interaktoren immer eine 100%-Testabdeckung zu erreichen.
+
+## Datenbankzugriff
+- Wir nutzen den Repository-Pattern für die Zugriffe auf die Datenbank.
+- Für den konkreten Zugriff nutzen wir eine IDatabaseAccessor-Schnittstelle, die mit einem SqlServerDatabaseAccessor implementiert ist.
+- In dem DatabaseAccessor gibt es eine Reihe von einfachen Methoden, die entweder abfragend sind und einzelne Records oder Arrays von Records zurückgeben.
+- Es gibt möglicherweise eine Implementation des DatabaseAccessors mit und ohne umspannende Transaktion.
+- Repositories nutzen einen IDatabaseAccessor zum Zugriff auf die tatsächliche Datenbank

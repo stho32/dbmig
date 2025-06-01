@@ -11,7 +11,8 @@
       "Bash(dotnet run:*)",
       "Bash(dotnet test:*)",
       "Bash(find:*)",
-      "Bash(mv:*)"
+      "Bash(mv:*)",
+      "Bash(ls:*)"
     ]
   },
   "enableAllProjectMcpServers": false
