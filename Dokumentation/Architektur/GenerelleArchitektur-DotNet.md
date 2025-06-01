@@ -55,3 +55,8 @@ End-to-End-Szenarien mit echter Datenbank:
 - Es gibt in jedem Thema einen Interactor, was insgesamt bedeutet, dass es in jedem Themen-Ordner oder in jedem der Unterthemen-Ordner einen Interactor gibt.
 - Interaktoren geben über public-Methoden immer einen Result zurück, das ist entweder ein Result-Record (IsSuccess:bool, Message:string) oder ein Result<T>-Record (Value:T, IsSuccess:bool, Message:string).
 - Jede public-Method in einem Interaktor ist in ein try-Catch gewrappt und Fehlermeldungen werden über den Result zurückgegeben.
+- Dabei ist die Message, die zurückgegeben wird, eine gute Beschreibung des Fehlers (oder allgemeine Beschreibung) für die UI und den Benutzer. Die eigentlichen Exceptions und ggf. weitere Informationen über die Situation des Fehlers werden an den Logger gegeben.
+- Interaktoren bekommen über ihren Constructor ggf. Repositories oder andere Subklassen eingegeben, die man für Integrations-Tests austauschen muss.
+- Es gibt eine zentrale InteractorFactory in der BL-Bibliothek, über die Interaktoren für die Oberfläche durch Get...Interactor abgerufen werden können.
+- In der IntegrationTests und Tests Bibliothek gibt es nach Wunsch eigene Interactor-Factories die dann die Tests auf höchster Ebene ausführen.
+- Versuche für Interaktoren immer eine 100%-Testabdeckung zu erreichen.
