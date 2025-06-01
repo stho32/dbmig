@@ -12,7 +12,11 @@
       "Bash(dotnet test:*)",
       "Bash(find:*)",
       "Bash(mv:*)",
-      "Bash(ls:*)"
+      "Bash(ls:*)",
+      "Bash(dotnet nuget locals:*)",
+      "Bash(./Scripts/Run-Tests.ps1)",
+      "Bash(grep:*)",
+      "Bash(sed:*)"
     ]
   },
   "enableAllProjectMcpServers": false

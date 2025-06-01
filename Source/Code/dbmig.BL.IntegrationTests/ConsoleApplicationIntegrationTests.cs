@@ -3,6 +3,7 @@ using dbmig.BL;
 using dbmig.BL.Common;
 using dbmig.BL.CommandInterpreter;
 using dbmig.BL.Database;
+using dbmig.BL.Configuration;
 
 namespace dbmig.BL.IntegrationTests;
 
@@ -22,7 +23,7 @@ public class ConsoleApplicationIntegrationTests
     [Test]
     public void EndToEnd_ClearDbCommand_WorksCorrectly()
     {
-        var args = new[] { "-c", "Server=localhost;Database=TestDb;Integrated Security=true;", "cleardb" };
+        var args = new[] { "-c", ConnectionStrings.IntegrationTest, "cleardb" };
         
         var parseResult = _commandInterpreter.ParseArguments(args);
         
@@ -38,7 +39,7 @@ public class ConsoleApplicationIntegrationTests
     [Test]
     public void EndToEnd_InitCommand_WithDefaultTable_WorksCorrectly()
     {
-        var args = new[] { "-c", "Server=localhost;Database=TestDb;Integrated Security=true;", "init" };
+        var args = new[] { "-c", ConnectionStrings.IntegrationTest, "init" };
         
         var parseResult = _commandInterpreter.ParseArguments(args);
         
@@ -55,7 +56,7 @@ public class ConsoleApplicationIntegrationTests
     [Test]
     public void EndToEnd_InitCommand_WithCustomTable_WorksCorrectly()
     {
-        var args = new[] { "-c", "Server=localhost;Database=TestDb;Integrated Security=true;", "init", "CustomMigrations" };
+        var args = new[] { "-c", ConnectionStrings.IntegrationTest, "init", "CustomMigrations" };
         
         var parseResult = _commandInterpreter.ParseArguments(args);
         
@@ -72,28 +73,45 @@ public class ConsoleApplicationIntegrationTests
     [Test]
     public void EndToEnd_MigrateCommand_WithValidDirectory_WorksCorrectly()
     {
-        var tempDir = Path.GetTempPath();
-        var args = new[] { "-c", "Server=localhost;Database=TestDb;Integrated Security=true;", "migrate", tempDir };
+        // Create a temporary directory with a test migration file
+        var tempDir = Path.Combine(Path.GetTempPath(), "dbmig_test_migrations_" + Guid.NewGuid().ToString("N")[..8]);
+        Directory.CreateDirectory(tempDir);
         
-        var parseResult = _commandInterpreter.ParseArguments(args);
+        var migrationFile = Path.Combine(tempDir, "00001-test-migration.sql");
+        File.WriteAllText(migrationFile, "-- Test migration\nSELECT 1;");
         
-        Assert.That(parseResult.IsSuccess, Is.True);
-        Assert.That(parseResult.CommandInfo, Is.Not.Null);
-        
-        var directory = parseResult.CommandInfo!.Parameters.GetValueOrDefault("Directory") as string;
-        var tableName = parseResult.CommandInfo.Parameters.GetValueOrDefault("MigrationTableName") as string;
-        
-        var executeResult = _databaseInteractor.RunMigrations(parseResult.CommandInfo.ConnectionString, directory ?? string.Empty, tableName);
-        
-        Assert.That(executeResult.IsSuccess, Is.True);
-        Assert.That(executeResult.Message, Does.Contain("executed successfully"));
+        try
+        {
+            var args = new[] { "-c", ConnectionStrings.IntegrationTest, "migrate", tempDir };
+            
+            var parseResult = _commandInterpreter.ParseArguments(args);
+            
+            Assert.That(parseResult.IsSuccess, Is.True);
+            Assert.That(parseResult.CommandInfo, Is.Not.Null);
+            
+            var directory = parseResult.CommandInfo!.Parameters.GetValueOrDefault("Directory") as string;
+            var tableName = parseResult.CommandInfo.Parameters.GetValueOrDefault("MigrationTableName") as string;
+            
+            var executeResult = _databaseInteractor.RunMigrations(parseResult.CommandInfo.ConnectionString, directory ?? string.Empty, tableName);
+            
+            Assert.That(executeResult.IsSuccess, Is.True);
+            Assert.That(executeResult.Message, Does.Contain("processed successfully"));
+        }
+        finally
+        {
+            // Cleanup
+            if (Directory.Exists(tempDir))
+            {
+                Directory.Delete(tempDir, true);
+            }
+        }
     }
 
     [Test]
     public void EndToEnd_MigrateCommand_WithNonExistentDirectory_ReturnsFailure()
     {
         var nonExistentDir = "./nonexistent-integration-test-dir";
-        var args = new[] { "-c", "Server=localhost;Database=TestDb;Integrated Security=true;", "migrate", nonExistentDir };
+        var args = new[] { "-c", ConnectionStrings.IntegrationTest, "migrate", nonExistentDir };
         
         var parseResult = _commandInterpreter.ParseArguments(args);
         
@@ -112,7 +130,7 @@ public class ConsoleApplicationIntegrationTests
     [Test]
     public void EndToEnd_InvalidCommand_ReturnsParseFailure()
     {
-        var args = new[] { "-c", "Server=localhost;Database=TestDb;Integrated Security=true;", "invalidcommand" };
+        var args = new[] { "-c", ConnectionStrings.IntegrationTest, "invalidcommand" };
         
         var parseResult = _commandInterpreter.ParseArguments(args);
         

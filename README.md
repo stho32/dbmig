@@ -208,3 +208,6 @@ Distributed under the MIT License. See `LICENSE` for more information.
 ---
 
 **dbmig** - Enterprise-grade Database Migration and Testing Tool for SQL Server
+
+## Entwicklungskosten (KI):
+- 01.06.2025: $12.94, 3h:40min

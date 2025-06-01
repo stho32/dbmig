@@ -1,5 +1,6 @@
 ﻿using NUnit.Framework;
 using dbmig.BL.CommandInterpreter;
+using dbmig.BL.Configuration;
 using dbmig.BL.Common;
 
 namespace dbmig.BL.Tests.CommandInterpreter;
@@ -68,23 +69,23 @@ public class CommandInterpreterInteractorTests
     [Test]
     public void ParseArguments_WithValidClearDbCommand_ReturnsSuccess()
     {
-        var result = _interactor.ParseArguments(new[] { "-c", "Server=localhost;Database=Test;", "cleardb" });
+        var result = _interactor.ParseArguments(new[] { "-c", ConnectionStrings.UnitTest, "cleardb" });
 
         Assert.That(result.IsSuccess, Is.True);
         Assert.That(result.CommandInfo, Is.Not.Null);
         Assert.That(result.CommandInfo!.Action, Is.EqualTo("cleardb"));
-        Assert.That(result.CommandInfo!.ConnectionString, Is.EqualTo("Server=localhost;Database=Test;"));
+        Assert.That(result.CommandInfo!.ConnectionString, Is.EqualTo(ConnectionStrings.UnitTest));
         Assert.That(result.CommandInfo!.Parameters.Count, Is.EqualTo(0));
     }
 
     [Test]
     public void ParseArguments_WithLongConnectionStringFlag_ReturnsSuccess()
     {
-        var result = _interactor.ParseArguments(new[] { "--connection-string", "Server=localhost;Database=Test;", "cleardb" });
+        var result = _interactor.ParseArguments(new[] { "--connection-string", ConnectionStrings.UnitTest, "cleardb" });
 
         Assert.That(result.IsSuccess, Is.True);
         Assert.That(result.CommandInfo, Is.Not.Null);
-        Assert.That(result.CommandInfo!.ConnectionString, Is.EqualTo("Server=localhost;Database=Test;"));
+        Assert.That(result.CommandInfo!.ConnectionString, Is.EqualTo(ConnectionStrings.UnitTest));
     }
 
     [Test]

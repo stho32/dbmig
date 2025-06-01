@@ -50,6 +50,7 @@ Die drei Datenbankaktionen sollen mit echter SQL Server-Funktionalität implemen
 - Bitte zweistufig, d.h. erst werden die Dateien erkannt und registriert und dann erst ausgeführt, so dass man einfach überprüfen kann, ob noch was offen ist, anhand der Zeitstempel.
 - Die Ausführung der Migrationen soll anhand der alphanumerischen Sortierung der Dateien sichergestellt sein, d.h. so wie die Dateien im Normalfall in der Verzeichnisstruktur aufgelistet werden, genau so werden sie in der Reihenfolge ausgeführt.
 - Der Migrationslauf findet nur bis zum ersten Fehler statt. Dann stoppt der Gesamtprozess.
+- Wenn ein Fehler im Migrationslauf auftritt, dann beende mit einem EXIT-Code 1 den Lauf, so dass nachfolgende Programme wissen können, dass es ein Problem gab.
 
 ## Implementationshinweise
 

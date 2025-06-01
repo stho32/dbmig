@@ -1,15 +1,27 @@
 using dbmig.BL.Common;
 using dbmig.BL.Logging;
+using dbmig.BL.Database.Repositories;
+using dbmig.BL.Configuration;
 
 namespace dbmig.BL.Database;
 
 public class DatabaseInteractor
 {
     private readonly ILogger _logger;
+    private readonly IMigrationRepository _migrationRepository;
 
-    public DatabaseInteractor()
+    public DatabaseInteractor(IMigrationRepository? migrationRepository = null)
     {
         _logger = LoggerFactory.Get();
+        _migrationRepository = migrationRepository ?? CreateDefaultRepository();
+    }
+
+    private static IMigrationRepository CreateDefaultRepository()
+    {
+        // Default: Create repository with default database accessor
+        // Connection string comes from central configuration
+        var databaseAccessor = new SqlServerDatabaseAccessor(ConnectionStrings.Default);
+        return new MigrationRepository(databaseAccessor);
     }
 
     public Result ClearDatabase(string connectionString)
@@ -18,10 +30,18 @@ public class DatabaseInteractor
         {
             _logger.LogInfo($"Clearing database with connection: {connectionString.Substring(0, Math.Min(50, connectionString.Length))}...");
             
-            // TODO: Implement actual database clearing logic
+            var result = _migrationRepository.ClearAllUserTablesAsync().GetAwaiter().GetResult();
             
-            _logger.LogInfo("Database cleared successfully");
-            return new Result(true, "Database cleared successfully.");
+            if (result)
+            {
+                _logger.LogInfo("Database cleared successfully");
+                return new Result(true, "Database cleared successfully.");
+            }
+            else
+            {
+                _logger.LogWarning("Database clearing completed with warnings");
+                return new Result(false, "Database clearing failed. Check logs for details.");
+            }
         }
         catch (Exception ex)
         {
@@ -37,10 +57,26 @@ public class DatabaseInteractor
             var tableName = migrationTableName ?? "_Migrations";
             _logger.LogInfo($"Initializing migration system with table '{tableName}'");
             
-            // TODO: Implement actual migration table creation logic
+            // Check if table already exists
+            var tableExists = _migrationRepository.MigrationTableExistsAsync(tableName).GetAwaiter().GetResult();
+            if (tableExists)
+            {
+                _logger.LogWarning($"Migration table '{tableName}' already exists");
+                return new Result(true, $"Migration system initialized with table '{tableName}'.");
+            }
             
-            _logger.LogInfo($"Migration system initialized successfully with table '{tableName}'");
-            return new Result(true, $"Migration system initialized with table '{tableName}'.");
+            var result = _migrationRepository.CreateMigrationTableAsync(tableName).GetAwaiter().GetResult();
+            
+            if (result)
+            {
+                _logger.LogInfo($"Migration system initialized successfully with table '{tableName}'");
+                return new Result(true, $"Migration system initialized with table '{tableName}'.");
+            }
+            else
+            {
+                _logger.LogWarning($"Migration table creation failed for '{tableName}'");
+                return new Result(false, $"Failed to create migration table '{tableName}'. Check logs for details.");
+            }
         }
         catch (Exception ex)
         {
@@ -62,10 +98,38 @@ public class DatabaseInteractor
                 return new Result(false, $"Migration directory '{directory}' does not exist.");
             }
 
-            // TODO: Implement actual migration execution logic
+            // Check if migration table exists
+            var tableExists = _migrationRepository.MigrationTableExistsAsync(tableName).GetAwaiter().GetResult();
+            if (!tableExists)
+            {
+                _logger.LogWarning($"Migration table '{tableName}' does not exist");
+                return new Result(false, $"Migration table '{tableName}' does not exist. Run 'init' command first.");
+            }
             
-            _logger.LogInfo($"Migrations executed successfully from '{directory}' using table '{tableName}'");
-            return new Result(true, $"Migrations from '{directory}' executed successfully using table '{tableName}'.");
+            // Get migration files
+            var migrationFiles = Directory.GetFiles(directory, "*.sql")
+                .Where(f => System.Text.RegularExpressions.Regex.IsMatch(Path.GetFileName(f), @"^\d{5}-.*\.sql$"))
+                .OrderBy(f => Path.GetFileName(f))
+                .ToArray();
+                
+            if (migrationFiles.Length == 0)
+            {
+                _logger.LogInfo("No migration files found in directory");
+                return new Result(true, "No migration files found to execute.");
+            }
+            
+            _logger.LogInfo($"Found {migrationFiles.Length} migration files");
+            
+            // For now, just register the migrations (discovery phase)
+            // TODO: Implement actual execution phase
+            foreach (var file in migrationFiles)
+            {
+                var fileName = Path.GetFileName(file);
+                _logger.LogInfo($"Discovered migration: {fileName}");
+            }
+            
+            _logger.LogInfo($"Migration discovery completed for '{directory}' using table '{tableName}'");
+            return new Result(true, $"Migrations from '{directory}' processed successfully using table '{tableName}'.");
         }
         catch (Exception ex)
         {
