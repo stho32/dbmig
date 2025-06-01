@@ -1,174 +1,210 @@
-# Golden Cage .NET Template
+# dbmig - Database Migration and Testing Tool
 
-Ein vollständiges, standardisiertes Template für .NET-Anwendungen mit KI-optimierter Entwicklung, automatisierten Scripts und umfassender Dokumentation.
+Ein leistungsstarkes Kommandozeilen-Tool für SQL Server Datenbank-Migrationen und -Tests mit Fokus auf Sicherheit, Nachvollziehbarkeit und Testbarkeit.
 
 ## Überblick
 
-Der "Golden Cage" ist ein produktionsreifes Verzeichnis-Template, das eine bewährte Struktur für .NET-Projekte bereitstellt. Jeder Hauptordner behandelt einen wichtigen Aspekt der Anwendungsentwicklung und bietet eine solide Grundlage für KI-gestützte Entwicklung mit vorgefertigten Scripts und Dokumentationen.
+dbmig ist ein spezialisiertes Tool für die Verwaltung von SQL Server Datenbank-Migrationen und automatisierten Datenbank-Tests. Es bietet eine robuste, skriptbasierte Lösung für kontrollierte Schema-Änderungen, Datenmigrationen und umfassende Testszenarien in Enterprise-Umgebungen.
+
+## Hauptfunktionen
+
+### 🔄 **Datenbank-Migration**
+- SQL-basierte Migrationsskripte mit Versionskontrolle
+- Automatische Rollback-Funktionalität bei Fehlern
+- Transaktionale Sicherheit für kritische Änderungen
+- Detailliertes Migrations-Logging und Audit-Trail
+
+### 🧪 **Datenbank-Testing**
+- Automatisierte Schema-Validierung
+- Performance-Tests für Migrationen
+- Datenintegritäts-Prüfungen
+- Testcontainer-basierte isolierte Testumgebungen
+
+### 🔐 **Enterprise-Features**
+- Multi-Umgebungs-Support (Dev, Test, Staging, Prod)
+- Verschlüsselte Verbindungsstrings
+- Rollback-Strategien und Recovery-Optionen
+- Umfassende Fehlerbehandlung und Logging
 
 ## Verzeichnisstruktur
 
 ```
-GoldenCageDotNet/
+dbmig/
 ├── CLAUDE.md                   # KI-Entwicklungsrichtlinien
 ├── Initialize-AI.md            # Schnelle KI-Initialisierung
 ├── Dokumentation/              # Projektdokumentation
-│   ├── Anforderungen/          # Anforderungsanalyse (R00001-*.md)
-│   ├── Architektur/            # CodeStyle & Patterns
+│   ├── Anforderungen/          # Feature-Anforderungen (R00001-*.md)
+│   ├── Architektur/            # Architektur & Design
 │   ├── Commands/               # Standard KI-Prompts
-│   └── Technologien/           # Framework-Dokumentation
+│   ├── Promptlog/              # Entwicklungs-Prompts (P00001-*.md)
+│   └── Technologien/           # Technologie-Dokumentation
 ├── Scripts/                    # PowerShell Automatisierung
-│   ├── Build.ps1              # Umfassendes Build-System
-│   ├── Database-Initialize.ps1 # DB Initialisierung/Clearing
-│   ├── Database-Migrate.ps1   # Kontrollierte DB-Migration
-│   ├── Run-Tests.ps1          # Unit & Integration Tests
-│   └── Run-UITests.ps1        # UI-Tests (Playwright)
+│   ├── Build.ps1              # Build-System
+│   ├── Database-Initialize.ps1 # DB Initialisierung
+│   ├── Database-Migrate.ps1   # Migration Runner
+│   ├── Run-Tests.ps1          # Test Runner
+│   └── Run-UITests.ps1        # UI-Tests (falls benötigt)
 ├── Source/                     # Quellcode
-│   ├── Create-Solution.ps1    # .NET Solution Generator
-│   ├── Code/                  # Hauptanwendungscode
-│   └── DBMigrations/          # SQL-basierte Migrationen
+│   ├── Create-Solution.ps1    # Solution Generator
+│   ├── Code/                  # dbmig Anwendungscode
+│   └── DBMigrations/          # SQL Migrationsskripte
 │       └── README.md          # Migrations-Dokumentation
 ├── Tests/                     # Test-Suite
-│   ├── Datenbank/             # Datenbank-Tests
+│   ├── Datenbank/             # DB-spezifische Tests
 │   │   └── README.md          # DB-Test Dokumentation
-│   └── UI/                    # Playwright UI-Tests
+│   └── UI/                    # UI-Tests (falls benötigt)
 │       └── README.md          # UI-Test Dokumentation
 └── README.md                  # Diese Datei
 ```
 
-## Hauptordner im Detail
+## Installation
 
-### 🤖 KI-Integration
-- **CLAUDE.md**: Entwicklungsrichtlinien für KI-Assistenten
-- **Initialize-AI.md**: Schnelle Initialisierungsbefehle für KI-Tools
+### Voraussetzungen
+- .NET 8.0 SDK
+- SQL Server 2019+ oder Azure SQL Database
+- PowerShell 7.0+
+- Optional: Docker für Testcontainer
 
-### 📋 Dokumentation/
-Zentrale Stelle für alle projektbezogene Dokumentation:
-- **Anforderungen/**: Strukturierte Anforderungen (R00001-*.md Format)
-- **Architektur/**: CodeStyle, Programmier-Patterns und Design-Entscheidungen
-- **Commands/**: Standard KI-Prompts (Security-Review, Code-Quality, etc.)
-- **Technologien/**: Framework-spezifische Dokumentation
-
-### ⚙️ Scripts/
-Produktionsreife PowerShell-Automatisierung:
-- **Build.ps1**: Vollständiges Build-System mit Multi-Framework Support
-- **Database-Initialize.ps1**: Datenbank-Initialisierung und Clearing
-- **Database-Migrate.ps1**: Kontrollierte Migration mit Rollback-Support
-- **Run-Tests.ps1**: Unit & Integration Test Runner
-- **Run-UITests.ps1**: Playwright UI-Test Ausführung
-
-### 💻 Source/
-Strukturierter Anwendungscode:
-- **Create-Solution.ps1**: Automatischer .NET Solution Generator
-- **Code/**: Hauptanwendungslogik, APIs, Services und Business Logic
-- **DBMigrations/**: SQL-basierte Migrationen (00001-beschreibung.sql Format)
-
-### 🧪 Tests/
-Umfassende Test-Suite mit Dokumentation:
-- **Datenbank/**: Schema-, Migration- und Performance-Tests
-- **UI/**: Playwright-basierte UI-Tests mit Page Object Model
-
-## Schnellstart
-
-### 1. Neue .NET Solution erstellen
+### Setup
 ```powershell
-# Erstelle eine neue WebAPI Solution
-.\Source\Create-Solution.ps1 -SolutionName "MeinProjekt" -ProjectType "WebApi"
+# Repository klonen
+git clone https://github.com/yourusername/dbmig.git
+cd dbmig
 
-# Erstelle eine Blazor Server Anwendung
-.\Source\Create-Solution.ps1 -SolutionName "MeinBlazorApp" -ProjectType "BlazorServer" -AddDockerSupport
+# Solution erstellen und bauen
+.\Source\Create-Solution.ps1 -SolutionName "dbmig" -ProjectType "Console"
+.\Scripts\Build.ps1 -Configuration "Release"
 ```
 
-### 2. KI-Assistent initialisieren
+## Verwendung
+
+### Basis-Kommandos
+
+```powershell
+# Neue Migration erstellen
+dbmig create-migration "AddUserTable"
+
+# Migrationen ausführen
+dbmig migrate --target latest
+dbmig migrate --target 00005-AddIndexes
+
+# Rollback durchführen
+dbmig rollback --steps 1
+dbmig rollback --target 00003-InitialSchema
+
+# Status anzeigen
+dbmig status
+dbmig history --last 10
+```
+
+### Erweiterte Features
+
+```powershell
+# Dry-Run Modus
+dbmig migrate --dry-run --verbose
+
+# Multi-Umgebung
+dbmig migrate --env production --config prod.json
+
+# Batch-Migrationen
+dbmig batch-migrate --from 00001 --to 00010 --pause 5
+
+# Validierung
+dbmig validate --schema --data --performance
+```
+
+## Konfiguration
+
+### Basis-Konfiguration (dbmig.json)
+```json
+{
+  "connectionStrings": {
+    "default": "Server=localhost;Database=MyApp;Integrated Security=true;",
+    "test": "Server=localhost;Database=MyApp_Test;Integrated Security=true;"
+  },
+  "migration": {
+    "tableName": "_MigrationHistory",
+    "schema": "dbo",
+    "transactionMode": "PerMigration",
+    "timeout": 300
+  },
+  "logging": {
+    "level": "Information",
+    "file": "logs/dbmig.log"
+  }
+}
+```
+
+## Migrations-Format
+
+Migrationen folgen dem Format `00001-beschreibung.sql`:
+
+```sql
+-- Migration: 00001-CreateUserTable.sql
+-- Author: dbmig
+-- Date: 2025-01-06
+-- Description: Creates the initial user table
+
+-- UP Migration
+CREATE TABLE Users (
+    Id INT IDENTITY(1,1) PRIMARY KEY,
+    Username NVARCHAR(50) NOT NULL,
+    Email NVARCHAR(255) NOT NULL,
+    CreatedAt DATETIME2 DEFAULT GETUTCDATE()
+);
+
+GO
+
+-- DOWN Migration
+DROP TABLE IF EXISTS Users;
+```
+
+## Testing
+
+```powershell
+# Alle Tests ausführen
+.\Scripts\Run-Tests.ps1 -All
+
+# Nur Migrations-Tests
+.\Scripts\Run-Tests.ps1 -Category "Migration"
+
+# Performance-Tests
+.\Scripts\Run-Tests.ps1 -Category "Performance" -Verbose
+
+# Mit Testcontainern
+.\Scripts\Run-Tests.ps1 -UseContainers -Coverage
+```
+
+## Sicherheit
+
+- Verschlüsselte Verbindungsstrings in Konfiguration
+- Audit-Logging für alle Migrationsaktivitäten
+- Rollback-Funktionalität für kritische Fehler
+- Berechtigungsprüfung vor Ausführung
+
+## Entwicklung
+
+### KI-gestützte Entwicklung
 ```bash
-# Vollständige Projekt-Initialisierung für KI
+# Projekt für KI-Assistenten initialisieren
 cat Initialize-AI.md
 
-# Oder verwende die Kommandos direkt
-cat README.md
-cat CLAUDE.md
-find ./Dokumentation/Anforderungen -name "*.md" -exec cat {} \;
-```
-
-### 3. Entwicklungsworkflow
-```powershell
-# Build der gesamten Solution
-.\Scripts\Build.ps1 -Configuration "Release" -Clean
-
-# Datenbank initialisieren
-.\Scripts\Database-Initialize.ps1 -DatabaseName "MeinProjekt" -Initialize
-
-# Tests ausführen
-.\Scripts\Run-Tests.ps1 -All -Coverage
-
-# UI-Tests mit Screenshots
-.\Scripts\Run-UITests.ps1 -Browser "Chrome" -Screenshots
-```
-
-## Produktionsmerkmale
-
-### ✅ **Vollautomatisierte Scripts**
-- Produktionsreife PowerShell-Scripts für alle Entwicklungsaufgaben
-- Multi-Browser UI-Testing mit Playwright
-- Umfassende Datenbank-Migration mit Rollback-Support
-
-### ✅ **KI-optimierte Entwicklung**
-- Strukturierte Dokumentation für optimale KI-Zusammenarbeit
-- Standard-Prompts für Code-Reviews und Qualitätssicherung
-- Schnelle Initialisierung mit vorgefertigten Kommandos
-
-### ✅ **Enterprise-ready Testing**
-- Schema-, Migration- und Performance-Tests für Datenbanken
-- Page Object Model für stabile UI-Tests
-- Testcontainers für isolierte Integrationstests
-
-### ✅ **Dokumentations-zentriert**
-- Strukturierte Anforderungen (R00001-*.md Format)
-- Architektur- und Technologie-Dokumentation
-- Versionierte Migrations-Dokumentation
-
-### ✅ **Skalierbare Struktur**
-- Template-basierte Solution-Generierung
-- Modulare Test-Architekturen
-- Standardisierte Projekt-Organisation
-
-## Verfügbare Scripts
-
-| Script | Beschreibung | Beispiel |
-|--------|-------------|----------|
-| `Build.ps1` | Umfassendes Build-System | `.\Scripts\Build.ps1 -Clean -Publish` |
-| `Database-Initialize.ps1` | DB Setup/Clear | `.\Scripts\Database-Initialize.ps1 -Initialize` |
-| `Database-Migrate.ps1` | Kontrollierte Migration | `.\Scripts\Database-Migrate.ps1 -TargetMigration "00005"` |
-| `Run-Tests.ps1` | Unit/Integration Tests | `.\Scripts\Run-Tests.ps1 -All -Coverage` |
-| `Run-UITests.ps1` | Playwright UI-Tests | `.\Scripts\Run-UITests.ps1 -Browser "Firefox" -Headless` |
-| `Create-Solution.ps1` | Solution Generator | `.\Source\Create-Solution.ps1 -SolutionName "App" -ProjectType "WebApi"` |
-
-## KI-Integration
-
-### Standard-Prompts verfügbar:
-- **Security-Review**: `cat ./Dokumentation/Commands/Security-Review.md`
-- **Code-Quality**: `cat ./Dokumentation/Commands/Code-Quality.md`
-- **Architektur-Prüfung**: `cat ./Dokumentation/Commands/Architektur-Pruefung.md`
-
-### Schnelle KI-Initialisierung:
-```bash
-# Für vollständigen Kontext
-cat Initialize-AI.md | bash
-
-# Für spezifische Bereiche
+# Spezifische Dokumentation laden
 cat ./Dokumentation/Anforderungen/README.md
-cat ./Dokumentation/Architektur/CodeStyle.md
+cat ./Dokumentation/Architektur/ProgrammierPatterns.md
 ```
 
-## Technologie-Stack
+### Beitragen
+1. Fork des Repositories
+2. Feature-Branch erstellen (`git checkout -b feature/AmazingFeature`)
+3. Änderungen committen (`git commit -m 'Add AmazingFeature'`)
+4. Branch pushen (`git push origin feature/AmazingFeature`)
+5. Pull Request erstellen
 
-- **.NET 8.0**: Modern C# Development
-- **Entity Framework Core**: ORM und Migrations
-- **Playwright**: Cross-Browser UI Testing
-- **NUnit**: Unit Testing Framework
-- **FluentAssertions**: Readable Test Assertions
-- **PowerShell**: Cross-Platform Automation
+## Lizenz
+
+Distributed under the MIT License. See `LICENSE` for more information.
 
 ---
 
-**Golden Cage .NET Template** - Produktionsreifes Template für moderne .NET-Entwicklung mit KI-Integration.
+**dbmig** - Enterprise-grade Database Migration and Testing Tool for SQL Server
