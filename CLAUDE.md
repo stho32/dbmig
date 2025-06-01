@@ -68,14 +68,80 @@ cat Initialize-AI.md  # Contains all necessary read commands and documentation
 - Migrations: `00001-kurze-inhaltsangabe.sql` format with documentation
 - Testing: Comprehensive README files for each test strategy
 
-## Development Workflow
+## Common Development Commands
+
+### Build & Test
+```powershell
+# Build solution
+.\Scripts\Build.ps1 -Configuration Release
+
+# Run all tests
+.\Scripts\Run-Tests.ps1 -All
+
+# Run unit tests only
+.\Scripts\Run-Tests.ps1 -UnitTests
+
+# Run integration tests only
+.\Scripts\Run-Tests.ps1 -IntegrationTests
+
+# Run with coverage
+.\Scripts\Run-Tests.ps1 -All -Coverage
+```
+
+### Single Test Execution
+```powershell
+# Run specific test project
+dotnet test .\Source\Code\dbmig.BL.Tests\dbmig.BL.Tests.csproj
+
+# Run specific test
+dotnet test --filter "FullyQualifiedName~InteractorTests.ShouldReturnSuccess"
+
+# Run tests in specific category
+.\Scripts\Run-Tests.ps1 -Category "Migration"
+```
+
+## Architecture Overview
+
+### .NET Project Structure
+The solution follows a layered architecture with clean separation:
+
+- **dbmig.Console**: Presentation layer handling CLI parsing, console output, and UI interaction
+- **dbmig.BL**: Business logic layer containing all core functionality organized by feature domains
+- **dbmig.BL.Tests**: Unit tests with NUnit for isolated component testing
+- **dbmig.BL.IntegrationTests**: End-to-end tests with real database interactions
+
+**Key Dependency Rule**: dbmig.Console → dbmig.BL (no reverse dependencies)
+
+### Interactor Pattern
+Business logic is exposed through Interactor classes:
+- Each feature domain has one XyzInteractor with public methods
+- All public methods return Result or Result<T> records
+- Methods are wrapped in try-catch with user-friendly error messages
+- Dependencies injected via constructor for testability
+- Accessed through central InteractorFactory.GetXxxInteractor()
+
+### Result Pattern
+```csharp
+// Simple operation result
+public record Result(bool IsSuccess, string Message);
+
+// Operation result with data
+public record Result<T>(T? Value, bool IsSuccess, string Message);
+```
+
+### Logging Strategy
+- ILogger interface with LoggerFactory.Get() method
+- Console implementation for CLI output
+- Cross-cutting concern (no dedicated interactor)
+- Exception details logged, user-friendly messages in Results
+
+### Development Workflow
 
 1. **Initialize Context**: Use `cat Initialize-AI.md` for complete AI context
-2. **Create Console App**: Use `Source/Create-Solution.ps1 -ProjectType Console`
-3. **Build & Test**: Leverage `Scripts/*.ps1` for all development tasks
-4. **Migration Development**: Create and test SQL migrations
-5. **Quality Assurance**: Apply standard prompts for reviews
-6. **Documentation-First**: Always document before implementing
+2. **Build & Test**: Use Scripts/*.ps1 for all development tasks
+3. **Migration Development**: Create and test SQL migrations
+4. **Quality Assurance**: Apply standard prompts for reviews
+5. **Documentation-First**: Always document before implementing
 
 ## Key Features for dbmig
 

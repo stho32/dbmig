@@ -2,7 +2,16 @@
   "permissions": {
     "allow": [
       "Bash(mkdir:*)",
-      "Bash(rm:*)"
+      "Bash(rm:*)",
+      "Bash(.\\Scripts\\Build.ps1)",
+      "Bash(pwsh ./Scripts/Build.ps1)",
+      "Bash(dotnet --version)",
+      "Bash(/snap/bin/dotnet:*)",
+      "Bash(pwsh ./Scripts/Run-Tests.ps1)",
+      "Bash(dotnet run:*)",
+      "Bash(dotnet test:*)",
+      "Bash(find:*)",
+      "Bash(mv:*)"
     ]
   },
   "enableAllProjectMcpServers": false
