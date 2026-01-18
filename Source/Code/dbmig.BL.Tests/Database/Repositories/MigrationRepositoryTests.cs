@@ -232,16 +232,27 @@ public class MigrationRepositoryTests
     }
 
     [Test]
-    public async Task ClearAllUserTablesAsync_CallsQueryAsync()
+    public async Task ClearAllUserTablesAsync_ClearsAllDatabaseObjectsInCorrectOrder()
     {
         _mockDatabaseAccessor.ExecuteAsyncReturnValue = 1;
 
         var result = await _repository.ClearAllUserTablesAsync();
 
         Assert.That(result, Is.True);
-        Assert.That(_mockDatabaseAccessor.QueryAsyncCalls, Has.Count.EqualTo(1));
-        Assert.That(_mockDatabaseAccessor.QueryAsyncCalls[0], Contains.Substring("INFORMATION_SCHEMA.TABLES"));
-        Assert.That(_mockDatabaseAccessor.ExecuteAsyncCalls, Has.Count.EqualTo(3)); // 3 tables
+        
+        // Should query for: foreign keys, functions, procedures, views, and tables
+        Assert.That(_mockDatabaseAccessor.QueryAsyncCalls, Has.Count.EqualTo(5));
+        
+        // Verify each query type
+        Assert.That(_mockDatabaseAccessor.QueryAsyncCalls[0], Contains.Substring("sys.foreign_keys"));
+        Assert.That(_mockDatabaseAccessor.QueryAsyncCalls[1], Contains.Substring("ROUTINE_TYPE = 'FUNCTION'"));
+        Assert.That(_mockDatabaseAccessor.QueryAsyncCalls[2], Contains.Substring("ROUTINE_TYPE = 'PROCEDURE'"));
+        Assert.That(_mockDatabaseAccessor.QueryAsyncCalls[3], Contains.Substring("INFORMATION_SCHEMA.VIEWS"));
+        Assert.That(_mockDatabaseAccessor.QueryAsyncCalls[4], Contains.Substring("INFORMATION_SCHEMA.TABLES"));
+        
+        // Should only execute DROP TABLE commands (3 tables)
+        Assert.That(_mockDatabaseAccessor.ExecuteAsyncCalls, Has.Count.EqualTo(3));
+        Assert.That(_mockDatabaseAccessor.ExecuteAsyncCalls.All(x => x.Contains("DROP TABLE")), Is.True);
     }
 
     [Test]

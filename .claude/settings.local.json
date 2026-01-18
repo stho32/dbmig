@@ -16,7 +16,8 @@
       "Bash(dotnet nuget locals:*)",
       "Bash(./Scripts/Run-Tests.ps1)",
       "Bash(grep:*)",
-      "Bash(sed:*)"
+      "Bash(sed:*)",
+      "Bash(dotnet build)"
     ]
   },
   "enableAllProjectMcpServers": false

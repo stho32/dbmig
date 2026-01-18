@@ -63,6 +63,21 @@ public class SqlServerDatabaseAccessor : IDatabaseAccessor
                 {
                     results.Add((T)reader.GetValue(0));
                 }
+                else if (typeof(T) == typeof(object) || typeof(T).Name == "Object" || 
+                         typeof(T).FullName?.Contains("Dynamic") == true || 
+                         typeof(T).FullName?.Contains("<>") == true)
+                {
+                    // Handle dynamic/anonymous types
+                    dynamic obj = new System.Dynamic.ExpandoObject();
+                    var dict = (IDictionary<string, object>)obj;
+                    
+                    for (int i = 0; i < reader.FieldCount; i++)
+                    {
+                        dict[reader.GetName(i)] = reader.GetValue(i);
+                    }
+                    
+                    results.Add((T)(object)obj);
+                }
                 else
                 {
                     // For complex types, you might want to implement a mapping mechanism

@@ -173,35 +173,90 @@ public class MigrationRepository : IMigrationRepository
     {
         try
         {
-            _logger.LogInfo("Starting to clear all user tables from database");
+            _logger.LogInfo("Starting to clear all user objects from database");
 
-            // Get all user tables (excluding system tables)
+            // Drop all foreign key constraints first
+            var getForeignKeysSQL = @"
+                SELECT 
+                    fk.name AS FK_Name,
+                    OBJECT_SCHEMA_NAME(fk.parent_object_id) AS Schema_Name,
+                    OBJECT_NAME(fk.parent_object_id) AS Table_Name
+                FROM sys.foreign_keys fk
+                WHERE OBJECT_SCHEMA_NAME(fk.parent_object_id) NOT IN ('sys', 'INFORMATION_SCHEMA')";
+
+            var foreignKeys = await _databaseAccessor.QueryAsync<dynamic>(getForeignKeysSQL);
+            foreach (var fk in foreignKeys)
+            {
+                var dropFKSQL = $"ALTER TABLE [{fk.Schema_Name}].[{fk.Table_Name}] DROP CONSTRAINT [{fk.FK_Name}]";
+                await _databaseAccessor.ExecuteAsync(dropFKSQL);
+                _logger.LogDebug($"Dropped foreign key: {fk.FK_Name}");
+            }
+
+            // Drop all user-defined functions
+            var getFunctionsSQL = @"
+                SELECT ROUTINE_SCHEMA, ROUTINE_NAME 
+                FROM INFORMATION_SCHEMA.ROUTINES 
+                WHERE ROUTINE_TYPE = 'FUNCTION' 
+                AND ROUTINE_SCHEMA NOT IN ('sys', 'INFORMATION_SCHEMA')";
+
+            var functions = await _databaseAccessor.QueryAsync<dynamic>(getFunctionsSQL);
+            foreach (var func in functions)
+            {
+                var dropFuncSQL = $"DROP FUNCTION IF EXISTS [{func.ROUTINE_SCHEMA}].[{func.ROUTINE_NAME}]";
+                await _databaseAccessor.ExecuteAsync(dropFuncSQL);
+                _logger.LogDebug($"Dropped function: {func.ROUTINE_SCHEMA}.{func.ROUTINE_NAME}");
+            }
+
+            // Drop all stored procedures
+            var getProcsSQL = @"
+                SELECT ROUTINE_SCHEMA, ROUTINE_NAME 
+                FROM INFORMATION_SCHEMA.ROUTINES 
+                WHERE ROUTINE_TYPE = 'PROCEDURE' 
+                AND ROUTINE_SCHEMA NOT IN ('sys', 'INFORMATION_SCHEMA')";
+
+            var procedures = await _databaseAccessor.QueryAsync<dynamic>(getProcsSQL);
+            foreach (var proc in procedures)
+            {
+                var dropProcSQL = $"DROP PROCEDURE IF EXISTS [{proc.ROUTINE_SCHEMA}].[{proc.ROUTINE_NAME}]";
+                await _databaseAccessor.ExecuteAsync(dropProcSQL);
+                _logger.LogDebug($"Dropped procedure: {proc.ROUTINE_SCHEMA}.{proc.ROUTINE_NAME}");
+            }
+
+            // Drop all views
+            var getViewsSQL = @"
+                SELECT TABLE_SCHEMA, TABLE_NAME 
+                FROM INFORMATION_SCHEMA.VIEWS 
+                WHERE TABLE_SCHEMA NOT IN ('sys', 'INFORMATION_SCHEMA')";
+
+            var views = await _databaseAccessor.QueryAsync<dynamic>(getViewsSQL);
+            foreach (var view in views)
+            {
+                var dropViewSQL = $"DROP VIEW IF EXISTS [{view.TABLE_SCHEMA}].[{view.TABLE_NAME}]";
+                await _databaseAccessor.ExecuteAsync(dropViewSQL);
+                _logger.LogDebug($"Dropped view: {view.TABLE_SCHEMA}.{view.TABLE_NAME}");
+            }
+
+            // Drop all user tables
             var getTablesSQL = @"
                 SELECT TABLE_SCHEMA, TABLE_NAME 
                 FROM INFORMATION_SCHEMA.TABLES 
                 WHERE TABLE_TYPE = 'BASE TABLE' 
                 AND TABLE_SCHEMA NOT IN ('sys', 'INFORMATION_SCHEMA')";
 
-            var tables = await _databaseAccessor.QueryAsync<string>(getTablesSQL);
-            
-            // Note: This is simplified. In reality, you'd need to handle:
-            // - Foreign key constraints
-            // - Views, procedures, functions
-            // - Proper schema handling
-            
+            var tables = await _databaseAccessor.QueryAsync<dynamic>(getTablesSQL);
             foreach (var table in tables)
             {
-                var dropSQL = $"DROP TABLE IF EXISTS [{table}]";
-                await _databaseAccessor.ExecuteAsync(dropSQL);
-                _logger.LogDebug($"Dropped table: {table}");
+                var dropTableSQL = $"DROP TABLE IF EXISTS [{table.TABLE_SCHEMA}].[{table.TABLE_NAME}]";
+                await _databaseAccessor.ExecuteAsync(dropTableSQL);
+                _logger.LogDebug($"Dropped table: {table.TABLE_SCHEMA}.{table.TABLE_NAME}");
             }
 
-            _logger.LogInfo("All user tables cleared successfully");
+            _logger.LogInfo("All user objects cleared successfully");
             return true;
         }
         catch (Exception ex)
         {
-            _logger.LogError("Error clearing all user tables", ex);
+            _logger.LogError("Error clearing all user objects", ex);
             return false;
         }
     }
