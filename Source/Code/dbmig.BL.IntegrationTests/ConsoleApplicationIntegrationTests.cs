@@ -252,10 +252,15 @@ public class ConsoleApplicationIntegrationTests
             var executeResult = _databaseInteractor.RunMigrations(parseResult.CommandInfo.ConnectionString, directory ?? string.Empty, tableName);
             
             Assert.That(executeResult.IsSuccess, Is.True);
-            Assert.That(executeResult.Message, Does.Contain("processed successfully"));
-            
-            // Note: Currently the migration is only discovered, not executed
-            // Once execution is implemented, we should verify the table was created
+            Assert.That(executeResult.Message, Does.Contain("completed successfully"));
+            Assert.That(executeResult.Message, Does.Contain("1 migration(s) applied"));
+
+            // Verify the migration was actually executed - table should exist now
+            using (var verifyAccessor = new SqlServerDatabaseAccessor(ConnectionStrings.IntegrationTest))
+            {
+                var tableExists = verifyAccessor.TableExistsAsync("TestMigrationTable").GetAwaiter().GetResult();
+                Assert.That(tableExists, Is.True, "Migration should have created the TestMigrationTable");
+            }
         }
         finally
         {

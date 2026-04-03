@@ -1,26 +1,38 @@
 using dbmig.BL.Common;
 using dbmig.BL.Logging;
 using dbmig.BL.Database.Repositories;
-using dbmig.BL.Configuration;
 
 namespace dbmig.BL.Database;
 
 public class DatabaseInteractor
 {
     private readonly ILogger _logger;
-    private readonly IMigrationRepository _migrationRepository;
+    private readonly IMigrationRepository? _injectedRepository;
 
-    public DatabaseInteractor(IMigrationRepository? migrationRepository = null)
+    /// <summary>
+    /// Production constructor — creates a real repository per call using the provided connection string.
+    /// </summary>
+    public DatabaseInteractor()
     {
         _logger = LoggerFactory.Get();
-        _migrationRepository = migrationRepository ?? CreateDefaultRepository();
+        _injectedRepository = null;
     }
 
-    private static IMigrationRepository CreateDefaultRepository()
+    /// <summary>
+    /// Test constructor — uses the injected repository for all operations.
+    /// </summary>
+    public DatabaseInteractor(IMigrationRepository? migrationRepository)
     {
-        // Default: Create repository with default database accessor
-        // Connection string comes from central configuration
-        var databaseAccessor = new SqlServerDatabaseAccessor(ConnectionStrings.Default);
+        _logger = LoggerFactory.Get();
+        _injectedRepository = migrationRepository;
+    }
+
+    private IMigrationRepository GetRepository(string connectionString)
+    {
+        if (_injectedRepository != null)
+            return _injectedRepository;
+
+        var databaseAccessor = new SqlServerDatabaseAccessor(connectionString);
         return new MigrationRepository(databaseAccessor);
     }
 
@@ -29,9 +41,10 @@ public class DatabaseInteractor
         try
         {
             _logger.LogInfo($"Clearing database with connection: {connectionString.Substring(0, Math.Min(50, connectionString.Length))}...");
-            
-            var result = _migrationRepository.ClearAllUserTablesAsync().GetAwaiter().GetResult();
-            
+
+            var repository = GetRepository(connectionString);
+            var result = repository.ClearAllUserTablesAsync().GetAwaiter().GetResult();
+
             if (result)
             {
                 _logger.LogInfo("Database cleared successfully");
@@ -56,17 +69,19 @@ public class DatabaseInteractor
         {
             var tableName = migrationTableName ?? "_Migrations";
             _logger.LogInfo($"Initializing migration system with table '{tableName}'");
-            
+
+            var repository = GetRepository(connectionString);
+
             // Check if table already exists
-            var tableExists = _migrationRepository.MigrationTableExistsAsync(tableName).GetAwaiter().GetResult();
+            var tableExists = repository.MigrationTableExistsAsync(tableName).GetAwaiter().GetResult();
             if (tableExists)
             {
                 _logger.LogWarning($"Migration table '{tableName}' already exists");
                 return new Result(true, $"Migration system initialized with table '{tableName}'.");
             }
-            
-            var result = _migrationRepository.CreateMigrationTableAsync(tableName).GetAwaiter().GetResult();
-            
+
+            var result = repository.CreateMigrationTableAsync(tableName).GetAwaiter().GetResult();
+
             if (result)
             {
                 _logger.LogInfo($"Migration system initialized successfully with table '{tableName}'");
@@ -91,45 +106,95 @@ public class DatabaseInteractor
         {
             var tableName = migrationTableName ?? "_Migrations";
             _logger.LogInfo($"Running migrations from directory '{directory}' using table '{tableName}'");
-            
+
             if (!Directory.Exists(directory))
             {
                 _logger.LogWarning($"Migration directory '{directory}' does not exist");
                 return new Result(false, $"Migration directory '{directory}' does not exist.");
             }
 
+            var repository = GetRepository(connectionString);
+
             // Check if migration table exists
-            var tableExists = _migrationRepository.MigrationTableExistsAsync(tableName).GetAwaiter().GetResult();
+            var tableExists = repository.MigrationTableExistsAsync(tableName).GetAwaiter().GetResult();
             if (!tableExists)
             {
                 _logger.LogWarning($"Migration table '{tableName}' does not exist");
                 return new Result(false, $"Migration table '{tableName}' does not exist. Run 'init' command first.");
             }
-            
+
             // Get migration files
             var migrationFiles = Directory.GetFiles(directory, "*.sql")
                 .Where(f => System.Text.RegularExpressions.Regex.IsMatch(Path.GetFileName(f), @"^\d{5}-.*\.sql$"))
                 .OrderBy(f => Path.GetFileName(f))
                 .ToArray();
-                
+
             if (migrationFiles.Length == 0)
             {
                 _logger.LogInfo("No migration files found in directory");
                 return new Result(true, "No migration files found to execute.");
             }
-            
+
             _logger.LogInfo($"Found {migrationFiles.Length} migration files");
-            
-            // For now, just register the migrations (discovery phase)
-            // TODO: Implement actual execution phase
+
+            // Phase 1: Discovery — register all migration files
+            var newMigrations = new List<string>();
             foreach (var file in migrationFiles)
             {
                 var fileName = Path.GetFileName(file);
-                _logger.LogInfo($"Discovered migration: {fileName}");
+                var existingMigration = repository.GetMigrationByNameAsync(fileName, tableName).GetAwaiter().GetResult();
+
+                if (existingMigration == null)
+                {
+                    var newMigration = new Models.NewMigration(fileName, DateTime.Now);
+                    repository.AddMigrationAsync(newMigration, tableName).GetAwaiter().GetResult();
+                    newMigrations.Add(file);
+                    _logger.LogInfo($"Registered new migration: {fileName}");
+                }
+                else if (existingMigration.AppliedAt != null && existingMigration.ErrorMessage == null)
+                {
+                    _logger.LogDebug($"Migration already applied: {fileName}");
+                }
+                else
+                {
+                    // Previously failed or not yet applied
+                    newMigrations.Add(file);
+                    _logger.LogInfo($"Migration pending: {fileName}");
+                }
             }
-            
-            _logger.LogInfo($"Migration discovery completed for '{directory}' using table '{tableName}'");
-            return new Result(true, $"Migrations from '{directory}' processed successfully using table '{tableName}'.");
+
+            if (newMigrations.Count == 0)
+            {
+                _logger.LogInfo("All migrations already applied");
+                return new Result(true, "All migrations are already applied. Nothing to do.");
+            }
+
+            // Phase 2: Execution — run each new migration
+            var executedCount = 0;
+            foreach (var file in newMigrations)
+            {
+                var fileName = Path.GetFileName(file);
+                _logger.LogInfo($"Executing migration: {fileName}");
+
+                try
+                {
+                    var sqlContent = File.ReadAllText(file);
+                    repository.ExecuteMigrationSqlAsync(sqlContent).GetAwaiter().GetResult();
+
+                    repository.UpdateMigrationAsync(fileName, DateTime.Now, null, tableName).GetAwaiter().GetResult();
+                    executedCount++;
+                    _logger.LogInfo($"Migration applied successfully: {fileName}");
+                }
+                catch (Exception ex)
+                {
+                    repository.UpdateMigrationAsync(fileName, null, ex.Message, tableName).GetAwaiter().GetResult();
+                    _logger.LogError($"Migration failed: {fileName}", ex);
+                    return new Result(false, $"Migration '{fileName}' failed: {ex.Message}. Execution stopped.");
+                }
+            }
+
+            _logger.LogInfo($"Migration completed: {executedCount} migrations applied successfully");
+            return new Result(true, $"Migrations from '{directory}' completed successfully. {executedCount} migration(s) applied using table '{tableName}'.");
         }
         catch (Exception ex)
         {
@@ -137,4 +202,5 @@ public class DatabaseInteractor
             return new Result(false, "Failed to run migrations. Please check your directory path and database connection.");
         }
     }
+
 }

@@ -1,151 +1,83 @@
-# dbmig - Database Migration and Testing Tool
+# dbmig - Database Migration Tool for SQL Server
 
-Ein leistungsstarkes Kommandozeilen-Tool für SQL Server Datenbank-Migrationen und -Tests mit Fokus auf Sicherheit, Nachvollziehbarkeit und Testbarkeit.
+Ein Kommandozeilen-Tool fuer SQL Server Datenbank-Migrationen mit Fokus auf Sicherheit, Nachvollziehbarkeit und Testbarkeit.
 
-## Überblick
+## Ueberblick
 
-dbmig ist ein spezialisiertes Tool für die Verwaltung von SQL Server Datenbank-Migrationen und automatisierten Datenbank-Tests. Es bietet eine robuste, skriptbasierte Lösung für kontrollierte Schema-Änderungen, Datenmigrationen und umfassende Testszenarien in Enterprise-Umgebungen.
+dbmig verwaltet SQL Server Datenbank-Migrationen ueber versionierte SQL-Skripte. Es bietet eine robuste, skriptbasierte Loesung fuer kontrollierte Schema-Aenderungen mit transaktionaler Sicherheit und detailliertem Logging.
 
 ## Hauptfunktionen
 
-### 🔄 **Datenbank-Migration**
-- SQL-basierte Migrationsskripte mit Versionskontrolle
-- Automatische Rollback-Funktionalität bei Fehlern
-- Transaktionale Sicherheit für kritische Änderungen
-- Detailliertes Migrations-Logging und Audit-Trail
+- **SQL-basierte Migrationen** mit 5-stelliger Nummerierung und automatischer Reihenfolge
+- **Zweistufiger Prozess**: Erst Registrierung (Discovery), dann Ausfuehrung
+- **Transaktionale Sicherheit**: Jede Migration in eigener Transaktion, Rollback bei Fehlern
+- **GO-Batch-Separator**: Unterstuetzung fuer SQL Server `GO`-Statements
+- **Fehler-Stopp**: Migrationsablauf stoppt beim ersten Fehler (Exit-Code 1)
+- **Datenbank bereinigen**: Alle Benutzerobjekte sicher entfernen (FK-Constraints, SPs, Functions, Views, Tabellen)
 
-### 🧪 **Datenbank-Testing**
-- Automatisierte Schema-Validierung
-- Performance-Tests für Migrationen
-- Datenintegritäts-Prüfungen
-- Testcontainer-basierte isolierte Testumgebungen
+## Voraussetzungen
 
-### 🔐 **Enterprise-Features**
-- Multi-Umgebungs-Support (Dev, Test, Staging, Prod)
-- Verschlüsselte Verbindungsstrings
-- Rollback-Strategien und Recovery-Optionen
-- Umfassende Fehlerbehandlung und Logging
-
-## Verzeichnisstruktur
-
-```
-dbmig/
-├── CLAUDE.md                   # KI-Entwicklungsrichtlinien
-├── Initialize-AI.md            # Schnelle KI-Initialisierung
-├── Dokumentation/              # Projektdokumentation
-│   ├── Anforderungen/          # Feature-Anforderungen (R00001-*.md)
-│   ├── Architektur/            # Architektur & Design
-│   ├── Commands/               # Standard KI-Prompts
-│   ├── Promptlog/              # Entwicklungs-Prompts (P00001-*.md)
-│   └── Technologien/           # Technologie-Dokumentation
-├── Scripts/                    # PowerShell Automatisierung
-│   ├── Build.ps1              # Build-System
-│   ├── Database-Initialize.ps1 # DB Initialisierung
-│   ├── Database-Migrate.ps1   # Migration Runner
-│   ├── Run-Tests.ps1          # Test Runner
-│   └── Run-UITests.ps1        # UI-Tests (falls benötigt)
-├── Source/                     # Quellcode
-│   ├── Create-Solution.ps1    # Solution Generator
-│   ├── Code/                  # dbmig Anwendungscode
-│   └── DBMigrations/          # SQL Migrationsskripte
-│       └── README.md          # Migrations-Dokumentation
-├── Tests/                     # Test-Suite
-│   ├── Datenbank/             # DB-spezifische Tests
-│   │   └── README.md          # DB-Test Dokumentation
-│   └── UI/                    # UI-Tests (falls benötigt)
-│       └── README.md          # UI-Test Dokumentation
-└── README.md                  # Diese Datei
-```
-
-## Installation
-
-### Voraussetzungen
 - .NET 8.0 SDK
 - SQL Server 2019+ oder Azure SQL Database
-- PowerShell 7.0+
-- Optional: Docker für Testcontainer
+- PowerShell 7.0+ (optional, fuer Scripts)
+- Docker (optional, fuer Testcontainer)
 
-### Setup
+## Installation & Build
+
 ```powershell
-# Repository klonen
-git clone https://github.com/yourusername/dbmig.git
+git clone https://github.com/stho32/dbmig.git
 cd dbmig
-
-# Solution erstellen und bauen
-.\Source\Create-Solution.ps1 -SolutionName "dbmig" -ProjectType "Console"
-.\Scripts\Build.ps1 -Configuration "Release"
+dotnet build Source/Code/dbmig.sln --configuration Release
 ```
 
 ## Verwendung
 
-### Basis-Kommandos
+### Kommandozeile
 
-```powershell
-# Neue Migration erstellen
-dbmig create-migration "AddUserTable"
+```bash
+# Hilfe anzeigen
+dbmig --help
 
-# Migrationen ausführen
-dbmig migrate --target latest
-dbmig migrate --target 00005-AddIndexes
+# Migrationssystem initialisieren (erstellt _Migrations-Tabelle)
+dbmig -c "Server=localhost;Database=MyDb;Integrated Security=true;TrustServerCertificate=true;" init
 
-# Rollback durchführen
-dbmig rollback --steps 1
-dbmig rollback --target 00003-InitialSchema
+# Mit benutzerdefiniertem Tabellennamen
+dbmig -c "Server=localhost;Database=MyDb;Integrated Security=true;TrustServerCertificate=true;" init CustomMigrations
 
-# Status anzeigen
-dbmig status
-dbmig history --last 10
+# Migrationen ausfuehren
+dbmig -c "Server=localhost;Database=MyDb;Integrated Security=true;TrustServerCertificate=true;" migrate ./Source/DBMigrations
+
+# Datenbank komplett leeren (alle Benutzerobjekte)
+dbmig -c "Server=localhost;Database=MyDb;Integrated Security=true;TrustServerCertificate=true;" cleardb
 ```
 
-### Erweiterte Features
+### PowerShell-Scripts
 
 ```powershell
-# Dry-Run Modus
-dbmig migrate --dry-run --verbose
+# Build
+.\Scripts\Build.ps1 -Configuration Release
 
-# Multi-Umgebung
-dbmig migrate --env production --config prod.json
+# Migrationssystem initialisieren
+.\Scripts\Database-Initialize.ps1 -ConnectionString "Server=localhost;..." -Initialize
 
-# Batch-Migrationen
-dbmig batch-migrate --from 00001 --to 00010 --pause 5
+# Datenbank leeren
+.\Scripts\Database-Initialize.ps1 -ConnectionString "Server=localhost;..." -Clear -Force
 
-# Validierung
-dbmig validate --schema --data --performance
-```
+# Migrationen ausfuehren
+.\Scripts\Database-Migrate.ps1 -ConnectionString "Server=localhost;..." -MigrationDirectory "./Source/DBMigrations"
 
-## Konfiguration
-
-### Basis-Konfiguration (dbmig.json)
-```json
-{
-  "connectionStrings": {
-    "default": "Server=localhost;Database=MyApp;Integrated Security=true;",
-    "test": "Server=localhost;Database=MyApp_Test;Integrated Security=true;"
-  },
-  "migration": {
-    "tableName": "_MigrationHistory",
-    "schema": "dbo",
-    "transactionMode": "PerMigration",
-    "timeout": 300
-  },
-  "logging": {
-    "level": "Information",
-    "file": "logs/dbmig.log"
-  }
-}
+# Tests ausfuehren
+.\Scripts\Run-Tests.ps1 -All
+.\Scripts\Run-Tests.ps1 -UnitTests
+.\Scripts\Run-Tests.ps1 -IntegrationTests
 ```
 
 ## Migrations-Format
 
-Migrationen folgen dem Format `00001-beschreibung.sql`:
+Migrationen folgen dem Format `XXXXX-beschreibung.sql` (5-stellige Nummer):
 
 ```sql
 -- Migration: 00001-CreateUserTable.sql
--- Author: dbmig
--- Date: 2025-01-06
--- Description: Creates the initial user table
-
--- UP Migration
 CREATE TABLE Users (
     Id INT IDENTITY(1,1) PRIMARY KEY,
     Username NVARCHAR(50) NOT NULL,
@@ -155,59 +87,65 @@ CREATE TABLE Users (
 
 GO
 
--- DOWN Migration
-DROP TABLE IF EXISTS Users;
+-- Weitere Batches nach GO
+CREATE INDEX IX_Users_Username ON Users (Username);
 ```
 
-## Testing
-
-```powershell
-# Alle Tests ausführen
-.\Scripts\Run-Tests.ps1 -All
-
-# Nur Migrations-Tests
-.\Scripts\Run-Tests.ps1 -Category "Migration"
-
-# Performance-Tests
-.\Scripts\Run-Tests.ps1 -Category "Performance" -Verbose
-
-# Mit Testcontainern
-.\Scripts\Run-Tests.ps1 -UseContainers -Coverage
-```
-
-## Sicherheit
-
-- Verschlüsselte Verbindungsstrings in Konfiguration
-- Audit-Logging für alle Migrationsaktivitäten
-- Rollback-Funktionalität für kritische Fehler
-- Berechtigungsprüfung vor Ausführung
+Migrationen werden im Verzeichnis `Source/DBMigrations/` abgelegt.
 
 ## Entwicklung
 
-### KI-gestützte Entwicklung
-```bash
-# Projekt für KI-Assistenten initialisieren
-cat Initialize-AI.md
+### Lokales Setup mit Docker
 
-# Spezifische Dokumentation laden
-cat ./Dokumentation/Anforderungen/README.md
-cat ./Dokumentation/Architektur/ProgrammierPatterns.md
+```bash
+# SQL Server Container starten
+docker compose up -d
+
+# Warten bis SQL Server bereit ist, dann Tests ausfuehren
+.\Scripts\Run-Tests.ps1 -All
 ```
 
-### Beitragen
-1. Fork des Repositories
-2. Feature-Branch erstellen (`git checkout -b feature/AmazingFeature`)
-3. Änderungen committen (`git commit -m 'Add AmazingFeature'`)
-4. Branch pushen (`git push origin feature/AmazingFeature`)
-5. Pull Request erstellen
+### Lokales Setup ohne Docker
+
+1. SQL Server lokal installieren
+2. Datenbanken anlegen:
+   ```sql
+   CREATE DATABASE dbmig_default;
+   CREATE DATABASE dbmig_unit_test;
+   CREATE DATABASE dbmig_integration_test;
+   ```
+3. Tests ausfuehren: `.\Scripts\Run-Tests.ps1 -All`
+
+### Projektstruktur
+
+```
+Source/Code/
+  dbmig.Console/          -- CLI-Einstiegspunkt
+  dbmig.BL/               -- Business-Logik (Interactoren, Repository, DB-Zugriff)
+  dbmig.BL.Tests/         -- Unit-Tests (NUnit)
+  dbmig.BL.IntegrationTests/ -- Integration-Tests mit echtem SQL Server
+```
+
+### Architektur
+
+- **Interactor-Pattern**: Business-Logik in `DatabaseInteractor` und `CommandInterpreterInteractor`
+- **Repository-Pattern**: `MigrationRepository` kapselt alle DB-Operationen
+- **Result-Types**: Alle Operationen geben `Result(IsSuccess, Message)` zurueck
+- **Layered**: Console -> BL (keine Rueckwaerts-Abhaengigkeiten)
+
+## Geplante Features
+
+- Dry-Run-Modus fuer Migrationen
+- Hash-Validierung fuer Migrationsskripte (Integritaetspruefung)
+- Rollback-Funktionalitaet
+- Status-/History-Abfrage
+- Multi-Umgebungs-Konfiguration
 
 ## Lizenz
 
-Distributed under the MIT License. See `LICENSE` for more information.
+MIT License. Siehe [LICENSE](LICENSE).
 
 ---
 
-**dbmig** - Enterprise-grade Database Migration and Testing Tool for SQL Server
-
-## Entwicklungskosten (KI):
+**Entwicklungskosten (KI):**
 - 01.06.2025: $12.94, 3h:40min

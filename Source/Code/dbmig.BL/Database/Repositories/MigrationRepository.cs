@@ -1,3 +1,4 @@
+using dbmig.BL.Common;
 using dbmig.BL.Database.Models;
 using dbmig.BL.Logging;
 
@@ -14,8 +15,15 @@ public class MigrationRepository : IMigrationRepository
         _logger = LoggerFactory.Get();
     }
 
+    private static void ValidateTableName(string tableName)
+    {
+        if (!ValidationHelper.IsValidTableName(tableName))
+            throw new ArgumentException($"Invalid table name: '{tableName}'. Only alphanumeric characters and underscores are allowed.", nameof(tableName));
+    }
+
     public async Task<bool> CreateMigrationTableAsync(string tableName = "_Migrations")
     {
+        ValidateTableName(tableName);
         try
         {
             _logger.LogInfo($"Creating migration table: {tableName}");
@@ -55,6 +63,7 @@ public class MigrationRepository : IMigrationRepository
 
     public async Task<bool> MigrationTableExistsAsync(string tableName = "_Migrations")
     {
+        ValidateTableName(tableName);
         try
         {
             return await _databaseAccessor.TableExistsAsync(tableName);
@@ -68,6 +77,7 @@ public class MigrationRepository : IMigrationRepository
 
     public async Task<IEnumerable<Migration>> GetAllMigrationsAsync(string tableName = "_Migrations")
     {
+        ValidateTableName(tableName);
         try
         {
             var sql = $@"
@@ -93,6 +103,7 @@ public class MigrationRepository : IMigrationRepository
 
     public async Task<Migration?> GetMigrationByNameAsync(string migrationName, string tableName = "_Migrations")
     {
+        ValidateTableName(tableName);
         try
         {
             var sql = $@"
@@ -118,6 +129,7 @@ public class MigrationRepository : IMigrationRepository
 
     public async Task<bool> AddMigrationAsync(NewMigration migration, string tableName = "_Migrations")
     {
+        ValidateTableName(tableName);
         try
         {
             var sql = $@"
@@ -145,6 +157,7 @@ public class MigrationRepository : IMigrationRepository
 
     public async Task<bool> UpdateMigrationAsync(string migrationName, DateTime? appliedAt, string? errorMessage, string tableName = "_Migrations")
     {
+        ValidateTableName(tableName);
         try
         {
             var sql = $@"
@@ -258,6 +271,34 @@ public class MigrationRepository : IMigrationRepository
         {
             _logger.LogError("Error clearing all user objects", ex);
             return false;
+        }
+    }
+
+    public async Task<bool> ExecuteMigrationSqlAsync(string sql)
+    {
+        try
+        {
+            return await _databaseAccessor.ExecuteInTransactionAsync(async db =>
+            {
+                // Split on GO batch separator
+                var batches = System.Text.RegularExpressions.Regex.Split(sql, @"^\s*GO\s*$",
+                    System.Text.RegularExpressions.RegexOptions.Multiline |
+                    System.Text.RegularExpressions.RegexOptions.IgnoreCase);
+
+                foreach (var batch in batches)
+                {
+                    if (!string.IsNullOrWhiteSpace(batch))
+                    {
+                        await db.ExecuteAsync(batch.Trim());
+                    }
+                }
+                return true;
+            });
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError("Error executing migration SQL", ex);
+            throw;
         }
     }
 }

@@ -258,13 +258,12 @@ public class MigrationRepositoryTests
     [Test]
     public async Task ClearAllUserTablesAsync_WhenNoTables_ReturnsTrue()
     {
-        // Configure mock to return empty table list
-        _mockDatabaseAccessor.QueryAsyncCalls.Clear();
-
         var result = await _repository.ClearAllUserTablesAsync();
 
         Assert.That(result, Is.True);
-        Assert.That(_mockDatabaseAccessor.QueryAsyncCalls, Has.Count.EqualTo(1));
+        // ClearAllUserTablesAsync always queries for all 5 object types:
+        // foreign keys, functions, procedures, views, tables
+        Assert.That(_mockDatabaseAccessor.QueryAsyncCalls, Has.Count.EqualTo(5));
     }
 
     [Test]
@@ -277,4 +276,77 @@ public class MigrationRepositoryTests
 
         Assert.That(result, Is.False);
     }
+
+    #region SQL Injection Protection Tests
+
+    [Test]
+    public void CreateMigrationTableAsync_WithSqlInjectionTableName_ThrowsArgumentException()
+    {
+        Assert.ThrowsAsync<ArgumentException>(async () =>
+            await _repository.CreateMigrationTableAsync("'; DROP TABLE Users; --"));
+    }
+
+    [Test]
+    public void MigrationTableExistsAsync_WithSqlInjectionTableName_ThrowsArgumentException()
+    {
+        Assert.ThrowsAsync<ArgumentException>(async () =>
+            await _repository.MigrationTableExistsAsync("]; DROP TABLE Users; --"));
+    }
+
+    [Test]
+    public void GetAllMigrationsAsync_WithSqlInjectionTableName_ThrowsArgumentException()
+    {
+        Assert.ThrowsAsync<ArgumentException>(async () =>
+            await _repository.GetAllMigrationsAsync("dbo.Users"));
+    }
+
+    [Test]
+    public void AddMigrationAsync_WithSqlInjectionTableName_ThrowsArgumentException()
+    {
+        var migration = new NewMigration("00001-Test", DateTime.Now);
+        Assert.ThrowsAsync<ArgumentException>(async () =>
+            await _repository.AddMigrationAsync(migration, "table; DROP TABLE x"));
+    }
+
+    [Test]
+    public void UpdateMigrationAsync_WithSqlInjectionTableName_ThrowsArgumentException()
+    {
+        Assert.ThrowsAsync<ArgumentException>(async () =>
+            await _repository.UpdateMigrationAsync("00001-Test", DateTime.Now, null, "[evil]"));
+    }
+
+    [Test]
+    public async Task CreateMigrationTableAsync_WithValidTableName_Succeeds()
+    {
+        _mockDatabaseAccessor.ExecuteAsyncReturnValue = 1;
+        var result = await _repository.CreateMigrationTableAsync("ValidTable_123");
+        Assert.That(result, Is.True);
+    }
+
+    #endregion
+
+    #region ExecuteMigrationSqlAsync Tests
+
+    [Test]
+    public async Task ExecuteMigrationSqlAsync_WithSimpleSql_ExecutesSuccessfully()
+    {
+        _mockDatabaseAccessor.ExecuteInTransactionAsyncReturnValue = true;
+
+        var result = await _repository.ExecuteMigrationSqlAsync("CREATE TABLE Test (Id INT);");
+
+        Assert.That(result, Is.True);
+        Assert.That(_mockDatabaseAccessor.ExecuteInTransactionAsyncCallCount, Is.EqualTo(1));
+    }
+
+    [Test]
+    public void ExecuteMigrationSqlAsync_WhenExceptionThrown_Throws()
+    {
+        _mockDatabaseAccessor.ShouldThrowException = true;
+        _mockDatabaseAccessor.ExceptionMessage = "SQL error";
+
+        Assert.ThrowsAsync<Exception>(async () =>
+            await _repository.ExecuteMigrationSqlAsync("INVALID SQL"));
+    }
+
+    #endregion
 }

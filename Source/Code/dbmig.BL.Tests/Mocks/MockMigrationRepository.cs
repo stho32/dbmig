@@ -80,6 +80,18 @@ public class MockMigrationRepository : IMigrationRepository
         return Task.FromResult(ShouldClearAllUserTablesSucceed);
     }
 
+    public List<string> ExecuteMigrationSqlCalls { get; } = new();
+    public bool ShouldExecuteMigrationSqlSucceed { get; set; } = true;
+
+    public Task<bool> ExecuteMigrationSqlAsync(string sql)
+    {
+        if (ShouldThrowException)
+            throw new Exception(ExceptionMessage);
+
+        ExecuteMigrationSqlCalls.Add(sql);
+        return Task.FromResult(ShouldExecuteMigrationSqlSucceed);
+    }
+
     public void Reset()
     {
         ShouldCreateMigrationTableSucceed = true;
@@ -95,5 +107,7 @@ public class MockMigrationRepository : IMigrationRepository
         AddMigrationCalls.Clear();
         UpdateMigrationCalls.Clear();
         ClearAllUserTablesCallCount = 0;
+        ExecuteMigrationSqlCalls.Clear();
+        ShouldExecuteMigrationSqlSucceed = true;
     }
 }

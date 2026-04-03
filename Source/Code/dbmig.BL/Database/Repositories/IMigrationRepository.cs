@@ -11,4 +11,5 @@ public interface IMigrationRepository
     Task<bool> AddMigrationAsync(NewMigration migration, string tableName = "_Migrations");
     Task<bool> UpdateMigrationAsync(string migrationName, DateTime? appliedAt, string? errorMessage, string tableName = "_Migrations");
     Task<bool> ClearAllUserTablesAsync();
+    Task<bool> ExecuteMigrationSqlAsync(string sql);
 }
