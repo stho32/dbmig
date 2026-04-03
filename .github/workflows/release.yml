@@ -1,0 +1,161 @@
+name: Release
+
+permissions:
+  contents: write
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+    inputs:
+      bump:
+        description: "Version bump type"
+        required: false
+        default: "patch"
+        type: choice
+        options:
+          - patch
+          - minor
+          - major
+
+env:
+  DOTNET_VERSION: "8.0.x"
+  SOLUTION_PATH: "Source/dbmig/dbmig.sln"
+  CONSOLE_PROJECT: "Source/dbmig/dbmig.Console/dbmig.Console.csproj"
+  TEST_PROJECT: "Source/dbmig/dbmig.BL.Tests/dbmig.BL.Tests.csproj"
+
+jobs:
+  prepare:
+    runs-on: ubuntu-latest
+    outputs:
+      version: ${{ steps.bump.outputs.version }}
+      tag: ${{ steps.bump.outputs.tag }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          fetch-tags: true
+
+      - name: Determine version
+        id: bump
+        shell: bash
+        run: |
+          # Find latest semver tag
+          LATEST=$(git tag --list 'v[0-9]*.[0-9]*.[0-9]*' --sort=-version:refname | head -n1)
+
+          if [ -z "$LATEST" ]; then
+            MAJOR=1; MINOR=0; PATCH=0
+            echo "No previous tag found, starting at 1.0.0"
+          else
+            echo "Latest tag: $LATEST"
+            VERSION=${LATEST#v}
+            MAJOR=$(echo "$VERSION" | cut -d. -f1)
+            MINOR=$(echo "$VERSION" | cut -d. -f2)
+            PATCH=$(echo "$VERSION" | cut -d. -f3)
+          fi
+
+          # Determine bump type
+          BUMP="${{ github.event.inputs.bump || 'patch' }}"
+          echo "Bump type: $BUMP"
+
+          case "$BUMP" in
+            major) MAJOR=$((MAJOR + 1)); MINOR=0; PATCH=0 ;;
+            minor) MINOR=$((MINOR + 1)); PATCH=0 ;;
+            patch) PATCH=$((PATCH + 1)) ;;
+          esac
+
+          NEW_VERSION="${MAJOR}.${MINOR}.${PATCH}"
+          echo "New version: $NEW_VERSION"
+          echo "version=$NEW_VERSION" >> "$GITHUB_OUTPUT"
+          echo "tag=v$NEW_VERSION" >> "$GITHUB_OUTPUT"
+
+  build-and-release:
+    needs: prepare
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: windows-latest
+            rid: win-x64
+            artifact: dbmig-win-x64.exe
+          - os: ubuntu-latest
+            rid: linux-x64
+            artifact: dbmig-linux-x64
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: ${{ env.DOTNET_VERSION }}
+
+      - name: Cache NuGet packages
+        uses: actions/cache@v4
+        with:
+          path: ~/.nuget/packages
+          key: ${{ runner.os }}-nuget-${{ hashFiles('**/*.csproj') }}
+          restore-keys: ${{ runner.os }}-nuget-
+
+      - name: Restore
+        run: dotnet restore ${{ env.SOLUTION_PATH }}
+
+      - name: Build
+        run: dotnet build ${{ env.SOLUTION_PATH }} --configuration Release --no-restore /p:Version=${{ needs.prepare.outputs.version }}
+
+      - name: Run Unit Tests
+        run: dotnet test ${{ env.TEST_PROJECT }} --configuration Release --no-build --verbosity normal
+
+      - name: Publish
+        run: dotnet publish ${{ env.CONSOLE_PROJECT }} -c Release -r ${{ matrix.rid }} --self-contained true /p:PublishSingleFile=true /p:Version=${{ needs.prepare.outputs.version }} -o publish
+
+      - name: Rename artifact (Windows)
+        if: runner.os == 'Windows'
+        shell: bash
+        run: mv publish/dbmig.Console.exe publish/${{ matrix.artifact }}
+
+      - name: Rename artifact (Linux)
+        if: runner.os == 'Linux'
+        run: mv publish/dbmig.Console publish/${{ matrix.artifact }} && chmod +x publish/${{ matrix.artifact }}
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.artifact }}
+          path: publish/${{ matrix.artifact }}
+
+  create-release:
+    needs: [prepare, build-and-release]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Download all artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: artifacts
+
+      - name: Create GitHub Release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          TAG="${{ needs.prepare.outputs.tag }}"
+          VERSION="${{ needs.prepare.outputs.version }}"
+
+          # Create tag
+          git tag "$TAG"
+          git push origin "$TAG"
+
+          # Collect all artifacts
+          FILES=""
+          for f in artifacts/**/*; do
+            if [ -f "$f" ]; then
+              FILES="$FILES $f"
+            fi
+          done
+
+          # Create release
+          gh release create "$TAG" \
+            --title "dbmig $VERSION" \
+            --generate-notes \
+            $FILES

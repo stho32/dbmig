@@ -1,14 +1,12 @@
 name: Build and Test
 
 on:
-  push:
-    branches: [ main ]
   pull_request:
     branches: [ main ]
 
 jobs:
   build:
-    runs-on: windows-latest
+    runs-on: ubuntu-latest
 
     steps:
     - uses: actions/checkout@v4
@@ -26,15 +24,6 @@ jobs:
 
     - name: Run Unit Tests
       run: dotnet test Source/dbmig/dbmig.BL.Tests/dbmig.BL.Tests.csproj --configuration Release --no-build --verbosity normal --collect:"XPlat Code Coverage" --results-directory ./TestResults
-
-    - name: Publish
-      run: dotnet publish Source/dbmig/dbmig.Console/dbmig.Console.csproj -c Release -o output -r win-x64 --self-contained true
-
-    - name: Upload Release Artifact
-      uses: actions/upload-artifact@v4
-      with:
-        name: dbmig-win-x64
-        path: output/
 
     - name: Upload Coverage
       if: always()
