@@ -1,3 +1,11 @@
+---
+id: R00002
+titel: "Vervollstaendigung der Datenbankaktionen"
+typ: Feature
+status: Umgesetzt
+erstellt: 2025-06-01
+---
+
 # Vervollständigung der Datenbankaktionen
 
 ## Kurzzusammenfassung

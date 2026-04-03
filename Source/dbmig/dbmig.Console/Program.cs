@@ -5,9 +5,9 @@ using dbmig.BL.Database;
 
 namespace dbmig.Console;
 
-class Program
+internal class Program
 {
-    static int Main(string[] args)
+    private static int Main(string[] args)
     {
         var parseResult = CommandLineArgumentsParser.Parse(args);
 

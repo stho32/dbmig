@@ -40,8 +40,8 @@ public class SqlServerDatabaseAccessorTests
     public void QuerySingleAsync_WithInvalidConnectionString_ThrowsException()
     {
         using var accessor = new SqlServerDatabaseAccessor(_invalidConnectionString);
-        
-        Assert.ThrowsAsync<SqlException>(async () => 
+
+        Assert.ThrowsAsync<SqlException>(async () =>
             await accessor.QuerySingleAsync<int>("SELECT 1"));
     }
 
@@ -49,8 +49,8 @@ public class SqlServerDatabaseAccessorTests
     public void QueryAsync_WithInvalidConnectionString_ThrowsException()
     {
         using var accessor = new SqlServerDatabaseAccessor(_invalidConnectionString);
-        
-        Assert.ThrowsAsync<SqlException>(async () => 
+
+        Assert.ThrowsAsync<SqlException>(async () =>
             await accessor.QueryAsync<int>("SELECT 1"));
     }
 
@@ -58,8 +58,8 @@ public class SqlServerDatabaseAccessorTests
     public void ExecuteAsync_WithInvalidConnectionString_ThrowsException()
     {
         using var accessor = new SqlServerDatabaseAccessor(_invalidConnectionString);
-        
-        Assert.ThrowsAsync<SqlException>(async () => 
+
+        Assert.ThrowsAsync<SqlException>(async () =>
             await accessor.ExecuteAsync("SELECT 1"));
     }
 
@@ -67,9 +67,9 @@ public class SqlServerDatabaseAccessorTests
     public void ExecuteInTransactionAsync_WithInvalidConnectionString_ThrowsException()
     {
         using var accessor = new SqlServerDatabaseAccessor(_invalidConnectionString);
-        
-        Assert.ThrowsAsync<SqlException>(async () => 
-            await accessor.ExecuteInTransactionAsync(async db => 
+
+        Assert.ThrowsAsync<SqlException>(async () =>
+            await accessor.ExecuteInTransactionAsync(async db =>
             {
                 await db.ExecuteAsync("SELECT 1");
                 return true;
@@ -80,8 +80,8 @@ public class SqlServerDatabaseAccessorTests
     public void TableExistsAsync_WithInvalidConnectionString_ThrowsException()
     {
         using var accessor = new SqlServerDatabaseAccessor(_invalidConnectionString);
-        
-        Assert.ThrowsAsync<SqlException>(async () => 
+
+        Assert.ThrowsAsync<SqlException>(async () =>
             await accessor.TableExistsAsync("TestTable"));
     }
 
@@ -89,9 +89,9 @@ public class SqlServerDatabaseAccessorTests
     public async Task DatabaseExistsAsync_WithInvalidConnectionString_ReturnsFalse()
     {
         using var accessor = new SqlServerDatabaseAccessor(_invalidConnectionString);
-        
+
         var result = await accessor.DatabaseExistsAsync();
-        
+
         Assert.That(result, Is.False);
     }
 
@@ -99,7 +99,7 @@ public class SqlServerDatabaseAccessorTests
     public void Dispose_DoesNotThrow()
     {
         var accessor = new SqlServerDatabaseAccessor(_validConnectionString);
-        
+
         Assert.DoesNotThrow(() => accessor.Dispose());
     }
 
@@ -107,8 +107,8 @@ public class SqlServerDatabaseAccessorTests
     public void Dispose_CalledTwice_DoesNotThrow()
     {
         var accessor = new SqlServerDatabaseAccessor(_validConnectionString);
-        
-        Assert.DoesNotThrow(() => 
+
+        Assert.DoesNotThrow(() =>
         {
             accessor.Dispose();
             accessor.Dispose();

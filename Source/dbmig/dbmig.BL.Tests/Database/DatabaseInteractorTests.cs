@@ -18,7 +18,7 @@ public class DatabaseInteractorTests
     {
         _mockRepository = new MockMigrationRepository();
         _interactor = new DatabaseInteractor(_mockRepository);
-        
+
         // Create a temporary test directory
         _testDirectory = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString());
         Directory.CreateDirectory(_testDirectory);
@@ -32,7 +32,7 @@ public class DatabaseInteractorTests
         {
             Directory.Delete(_testDirectory, true);
         }
-        
+
         _mockRepository.Reset();
     }
 

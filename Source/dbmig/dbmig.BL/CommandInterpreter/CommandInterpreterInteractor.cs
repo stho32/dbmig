@@ -78,9 +78,9 @@ public class CommandInterpreterInteractor
     private Dictionary<string, object> GetActionParameters(string[] args, string action)
     {
         var parameters = new Dictionary<string, object>();
-        
+
         var actionIndex = Array.FindIndex(args, arg => arg.Equals(action, StringComparison.OrdinalIgnoreCase));
-        
+
         switch (action.ToLower())
         {
             case "init":
@@ -89,7 +89,7 @@ public class CommandInterpreterInteractor
                     parameters["MigrationTableName"] = args[actionIndex + 1];
                 }
                 break;
-                
+
             case "migrate":
                 if (actionIndex + 1 < args.Length && !args[actionIndex + 1].StartsWith("-"))
                 {
@@ -101,7 +101,7 @@ public class CommandInterpreterInteractor
                 }
                 break;
         }
-        
+
         return parameters;
     }
 

@@ -1,3 +1,11 @@
+---
+id: R00001
+titel: "Konsolenanwendung mit ConnectionString und Aktionsparametern"
+typ: Feature
+status: Umgesetzt
+erstellt: 2025-06-01
+---
+
 # Konsolenanwendung mit ConnectionString und Aktionsparametern
 
 ## Kurzzusammenfassung

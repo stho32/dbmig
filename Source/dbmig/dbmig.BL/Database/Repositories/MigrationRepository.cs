@@ -39,7 +39,7 @@ public class MigrationRepository : IMigrationRepository
                 )";
 
             await _databaseAccessor.ExecuteAsync(sql);
-            
+
             // Add baseline migration
             var baselineMigration = new NewMigration(
                 "00000-Baseline",
@@ -48,9 +48,9 @@ public class MigrationRepository : IMigrationRepository
                 DateTime.Now,
                 null
             );
-            
+
             await AddMigrationAsync(baselineMigration, tableName);
-            
+
             _logger.LogInfo($"Migration table '{tableName}' created successfully with baseline migration");
             return true;
         }
@@ -86,12 +86,12 @@ public class MigrationRepository : IMigrationRepository
                 ORDER BY [MigrationName]";
 
             var results = await _databaseAccessor.QueryAsync<dynamic>(sql);
-            
+
             // Convert dynamic results to Migration objects
             var migrations = new List<Migration>();
             // Note: This is a simplified version. In a real implementation,
             // you would use a proper ORM or mapping mechanism
-            
+
             return migrations;
         }
         catch (Exception ex)
@@ -112,12 +112,12 @@ public class MigrationRepository : IMigrationRepository
                 WHERE [MigrationName] = @migrationName";
 
             var parameters = new { migrationName };
-            
+
             // Simplified implementation - in practice you'd use proper mapping
             var exists = await _databaseAccessor.QuerySingleAsync<int?>(
-                $"SELECT 1 FROM [{tableName}] WHERE [MigrationName] = @migrationName", 
+                $"SELECT 1 FROM [{tableName}] WHERE [MigrationName] = @migrationName",
                 parameters);
-            
+
             return exists.HasValue ? new Migration(0, migrationName, DateTime.Now, null, null, null) : null;
         }
         catch (Exception ex)

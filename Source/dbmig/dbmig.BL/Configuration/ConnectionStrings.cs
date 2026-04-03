@@ -9,7 +9,7 @@ public static class ConnectionStrings
     /// Standard SQL Server Connection String Template
     /// Verwendet localhost für Windows und Host-IP für WSL
     /// </summary>
-    private static string StandardTemplate => IsRunningInWSL() 
+    private static string StandardTemplate => IsRunningInWSL()
         ? "Server=172.17.32.1;Database={0};Integrated Security=true;TrustServerCertificate=true;"
         : "Server=localhost;Database={0};Integrated Security=true;TrustServerCertificate=true;";
 
@@ -54,7 +54,7 @@ public static class ConnectionStrings
     /// <param name="integratedSecurity">Integrated Security verwenden (Standard: true)</param>
     /// <param name="trustServerCertificate">Server-Zertifikat vertrauen (Standard: true)</param>
     /// <returns>Vollständiger Connection String</returns>
-    public static string Custom(string server = "localhost", string database = "dbmig_default", 
+    public static string Custom(string server = "localhost", string database = "dbmig_default",
                                bool integratedSecurity = true, bool trustServerCertificate = true)
     {
         return $"Server={server};Database={database};Integrated Security={integratedSecurity};TrustServerCertificate={trustServerCertificate};";

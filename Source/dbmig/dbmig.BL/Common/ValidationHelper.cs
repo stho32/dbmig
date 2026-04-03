@@ -4,7 +4,7 @@ namespace dbmig.BL.Common;
 
 public static partial class ValidationHelper
 {
-    private static readonly Regex ValidTableNameRegex = CreateTableNameRegex();
+    private static readonly Regex _validTableNameRegex = CreateTableNameRegex();
 
     /// <summary>
     /// Validates a SQL Server table name to prevent SQL injection.
@@ -16,7 +16,7 @@ public static partial class ValidationHelper
         if (string.IsNullOrWhiteSpace(tableName))
             return false;
 
-        return ValidTableNameRegex.IsMatch(tableName);
+        return _validTableNameRegex.IsMatch(tableName);
     }
 
     [GeneratedRegex(@"^[a-zA-Z_][a-zA-Z0-9_]{0,127}$")]

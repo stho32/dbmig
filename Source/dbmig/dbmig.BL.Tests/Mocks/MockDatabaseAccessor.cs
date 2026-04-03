@@ -48,22 +48,22 @@ public class MockDatabaseAccessor : IDatabaseAccessor
             var tables = new[] { "Table1", "Table2", "Table3" };
             return Task.FromResult((IEnumerable<T>)(object)tables);
         }
-        
+
         // For dynamic queries (like the INFORMATION_SCHEMA query), return table objects
         if (typeof(T) == typeof(object) && sql.Contains("INFORMATION_SCHEMA.TABLES"))
         {
             dynamic table1 = new System.Dynamic.ExpandoObject();
             table1.TABLE_SCHEMA = "dbo";
             table1.TABLE_NAME = "Table1";
-            
+
             dynamic table2 = new System.Dynamic.ExpandoObject();
             table2.TABLE_SCHEMA = "dbo";
             table2.TABLE_NAME = "Table2";
-            
+
             dynamic table3 = new System.Dynamic.ExpandoObject();
             table3.TABLE_SCHEMA = "dbo";
             table3.TABLE_NAME = "Table3";
-            
+
             var tables = new[] { table1, table2, table3 };
             return Task.FromResult((IEnumerable<T>)(object)tables);
         }

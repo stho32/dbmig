@@ -1,4 +1,4 @@
-﻿using NUnit.Framework;
+using NUnit.Framework;
 using dbmig.BL.CommandInterpreter;
 using dbmig.BL.Configuration;
 using dbmig.BL.Common;

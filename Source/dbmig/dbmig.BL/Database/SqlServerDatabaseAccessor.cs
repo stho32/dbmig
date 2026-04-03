@@ -23,12 +23,12 @@ public class SqlServerDatabaseAccessor : IDatabaseAccessor
         try
         {
             _logger.LogDebug($"Executing single query: {sql}");
-            
+
             var connection = await GetConnectionAsync();
             using var command = new SqlCommand(sql, connection, _transaction);
-            
+
             AddParameters(command, parameters);
-            
+
             var result = await command.ExecuteScalarAsync();
             return result != null && result != DBNull.Value ? (T)result : default(T);
         }
@@ -44,15 +44,15 @@ public class SqlServerDatabaseAccessor : IDatabaseAccessor
         try
         {
             _logger.LogDebug($"Executing query: {sql}");
-            
+
             var connection = await GetConnectionAsync();
             using var command = new SqlCommand(sql, connection, _transaction);
-            
+
             AddParameters(command, parameters);
-            
+
             var results = new List<T>();
             using var reader = await command.ExecuteReaderAsync();
-            
+
             while (await reader.ReadAsync())
             {
                 if (typeof(T) == typeof(string))
@@ -63,19 +63,19 @@ public class SqlServerDatabaseAccessor : IDatabaseAccessor
                 {
                     results.Add((T)reader.GetValue(0));
                 }
-                else if (typeof(T) == typeof(object) || typeof(T).Name == "Object" || 
-                         typeof(T).FullName?.Contains("Dynamic") == true || 
+                else if (typeof(T) == typeof(object) || typeof(T).Name == "Object" ||
+                         typeof(T).FullName?.Contains("Dynamic") == true ||
                          typeof(T).FullName?.Contains("<>") == true)
                 {
                     // Handle dynamic/anonymous types
                     dynamic obj = new System.Dynamic.ExpandoObject();
                     var dict = (IDictionary<string, object>)obj;
-                    
+
                     for (int i = 0; i < reader.FieldCount; i++)
                     {
                         dict[reader.GetName(i)] = reader.GetValue(i);
                     }
-                    
+
                     results.Add((T)(object)obj);
                 }
                 else
@@ -84,7 +84,7 @@ public class SqlServerDatabaseAccessor : IDatabaseAccessor
                     throw new NotSupportedException($"Type {typeof(T)} is not supported for simple queries");
                 }
             }
-            
+
             return results;
         }
         catch (Exception ex)
@@ -99,15 +99,15 @@ public class SqlServerDatabaseAccessor : IDatabaseAccessor
         try
         {
             _logger.LogDebug($"Executing command: {sql}");
-            
+
             var connection = await GetConnectionAsync();
             using var command = new SqlCommand(sql, connection, _transaction);
-            
+
             AddParameters(command, parameters);
-            
+
             var rowsAffected = await command.ExecuteNonQueryAsync();
             _logger.LogDebug($"Command executed, rows affected: {rowsAffected}");
-            
+
             return rowsAffected;
         }
         catch (Exception ex)
@@ -122,21 +122,21 @@ public class SqlServerDatabaseAccessor : IDatabaseAccessor
         try
         {
             _logger.LogDebug("Starting database transaction");
-            
+
             var connection = await GetConnectionAsync();
-            
+
             if (_transaction != null)
             {
                 // Already in transaction, just execute the operation
                 return await operation(this);
             }
-            
+
             _transaction = connection.BeginTransaction();
-            
+
             try
             {
                 var result = await operation(this);
-                
+
                 if (result)
                 {
                     await _transaction.CommitAsync();
@@ -147,7 +147,7 @@ public class SqlServerDatabaseAccessor : IDatabaseAccessor
                     await _transaction.RollbackAsync();
                     _logger.LogDebug("Transaction rolled back due to operation failure");
                 }
-                
+
                 return result;
             }
             catch
@@ -178,10 +178,10 @@ public class SqlServerDatabaseAccessor : IDatabaseAccessor
                 SELECT COUNT(1) 
                 FROM INFORMATION_SCHEMA.TABLES 
                 WHERE TABLE_SCHEMA = @schema AND TABLE_NAME = @tableName";
-            
+
             var parameters = new { schema, tableName };
             var count = await QuerySingleAsync<int>(sql, parameters);
-            
+
             return count > 0;
         }
         catch (Exception ex)
@@ -213,20 +213,20 @@ public class SqlServerDatabaseAccessor : IDatabaseAccessor
             await _connection.OpenAsync();
             _logger.LogDebug("Database connection opened");
         }
-        
+
         if (_connection.State != ConnectionState.Open)
         {
             await _connection.OpenAsync();
             _logger.LogDebug("Database connection reopened");
         }
-        
+
         return _connection;
     }
 
     private static void AddParameters(SqlCommand command, object? parameters)
     {
         if (parameters == null) return;
-        
+
         var properties = parameters.GetType().GetProperties();
         foreach (var property in properties)
         {
