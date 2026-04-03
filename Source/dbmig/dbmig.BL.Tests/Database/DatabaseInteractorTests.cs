@@ -392,5 +392,32 @@ public class DatabaseInteractorTests
         Assert.That(result.IsSuccess, Is.True);
     }
 
+    [Test]
+    public void RunMigrations_WithDryRun_DoesNotExecuteMigrations()
+    {
+        File.WriteAllText(Path.Combine(_testDirectory, "00001-CreateTable.sql"), "CREATE TABLE Test (Id INT);");
+        File.WriteAllText(Path.Combine(_testDirectory, "00002-AddColumn.sql"), "ALTER TABLE Test ADD Name NVARCHAR(50);");
+
+        _mockRepository.ShouldMigrationTableExist = true;
+
+        var result = _interactor.RunMigrations(ConnectionStrings.UnitTest, _testDirectory, null, dryRun: true);
+
+        Assert.That(result.IsSuccess, Is.True);
+        Assert.That(result.Message, Does.Contain("DRY RUN"));
+        Assert.That(result.Message, Does.Contain("2 migration(s) would be applied"));
+        Assert.That(_mockRepository.ExecuteMigrationSqlCalls, Has.Count.EqualTo(0));
+    }
+
+    [Test]
+    public void RunMigrations_WithDryRunAndNoNewMigrations_ReturnsNothingToDo()
+    {
+        _mockRepository.ShouldMigrationTableExist = true;
+
+        var result = _interactor.RunMigrations(ConnectionStrings.UnitTest, _testDirectory, null, dryRun: true);
+
+        Assert.That(result.IsSuccess, Is.True);
+        Assert.That(result.Message, Does.Contain("No migration files found"));
+    }
+
     #endregion
 }

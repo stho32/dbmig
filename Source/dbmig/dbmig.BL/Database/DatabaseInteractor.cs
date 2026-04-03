@@ -100,7 +100,7 @@ public class DatabaseInteractor
         }
     }
 
-    public Result RunMigrations(string connectionString, string directory, string? migrationTableName = null)
+    public Result RunMigrations(string connectionString, string directory, string? migrationTableName = null, bool dryRun = false)
     {
         try
         {
@@ -167,6 +167,17 @@ public class DatabaseInteractor
             {
                 _logger.LogInfo("All migrations already applied");
                 return new Result(true, "All migrations are already applied. Nothing to do.");
+            }
+
+            // DryRun mode — show what would be executed without making changes
+            if (dryRun)
+            {
+                _logger.LogInfo("DRY RUN mode — no changes will be made");
+                foreach (var file in newMigrations)
+                {
+                    _logger.LogInfo($"  Would execute: {Path.GetFileName(file)}");
+                }
+                return new Result(true, $"DRY RUN: {newMigrations.Count} migration(s) would be applied from '{directory}' using table '{tableName}'.");
             }
 
             // Phase 2: Execution — run each new migration

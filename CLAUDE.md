@@ -26,7 +26,7 @@ dbmig is a powerful command-line tool for SQL Server database migrations and tes
 │   └── Run-UITests.ps1        # UI test execution (if needed)
 ├── Source/
 │   ├── Create-Solution.ps1    # Automated .NET solution generator
-│   ├── Code/                  # dbmig application code
+│   ├── dbmig/                 # dbmig application code
 │   └── DBMigrations/          # SQL migration scripts (00001-*.sql)
 │       └── README.md          # Migration system documentation
 ├── Tests/

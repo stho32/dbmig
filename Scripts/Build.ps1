@@ -8,10 +8,10 @@ $ErrorActionPreference = "Stop"
 Write-Host "Building dbmig solution..." -ForegroundColor Cyan
 
 # Find solution file
-$solutionPath = Get-ChildItem -Path "./Source/Code" -Filter "*.sln" | Select-Object -First 1
+$solutionPath = Get-ChildItem -Path "./Source/dbmig" -Filter "*.sln" | Select-Object -First 1
 
 if (-not $solutionPath) {
-    Write-Host "Error: No solution file found in ./Source/Code" -ForegroundColor Red
+    Write-Host "Error: No solution file found in ./Source/dbmig" -ForegroundColor Red
     exit 1
 }
 

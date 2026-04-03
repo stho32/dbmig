@@ -27,7 +27,7 @@ dbmig verwaltet SQL Server Datenbank-Migrationen ueber versionierte SQL-Skripte.
 ```powershell
 git clone https://github.com/stho32/dbmig.git
 cd dbmig
-dotnet build Source/Code/dbmig.sln --configuration Release
+dotnet build Source/dbmig/dbmig.sln --configuration Release
 ```
 
 ## Verwendung
@@ -119,7 +119,7 @@ docker compose up -d
 ### Projektstruktur
 
 ```
-Source/Code/
+Source/dbmig/
   dbmig.Console/          -- CLI-Einstiegspunkt
   dbmig.BL/               -- Business-Logik (Interactoren, Repository, DB-Zugriff)
   dbmig.BL.Tests/         -- Unit-Tests (NUnit)

@@ -13,7 +13,7 @@ param(
 $ErrorActionPreference = "Stop"
 
 # Find the console project
-$consolePath = "./Source/Code/dbmig.Console/dbmig.Console.csproj"
+$consolePath = "./Source/dbmig/dbmig.Console/dbmig.Console.csproj"
 
 if (-not (Test-Path $consolePath)) {
     Write-Host "[ERROR] Console project not found at: $consolePath" -ForegroundColor Red

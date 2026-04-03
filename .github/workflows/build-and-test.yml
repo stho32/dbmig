@@ -8,7 +8,7 @@ on:
 
 jobs:
   build:
-    runs-on: ubuntu-latest
+    runs-on: windows-latest
 
     steps:
     - uses: actions/checkout@v4
@@ -19,13 +19,22 @@ jobs:
         dotnet-version: 8.0.x
 
     - name: Restore dependencies
-      run: dotnet restore Source/Code/dbmig.sln
+      run: dotnet restore Source/dbmig/dbmig.sln
 
     - name: Build
-      run: dotnet build Source/Code/dbmig.sln --configuration Release --no-restore
+      run: dotnet build Source/dbmig/dbmig.sln --configuration Release --no-restore
 
     - name: Run Unit Tests
-      run: dotnet test Source/Code/dbmig.BL.Tests/dbmig.BL.Tests.csproj --configuration Release --no-build --verbosity normal --collect:"XPlat Code Coverage" --results-directory ./TestResults
+      run: dotnet test Source/dbmig/dbmig.BL.Tests/dbmig.BL.Tests.csproj --configuration Release --no-build --verbosity normal --collect:"XPlat Code Coverage" --results-directory ./TestResults
+
+    - name: Publish
+      run: dotnet publish Source/dbmig/dbmig.Console/dbmig.Console.csproj -c Release -o output -r win-x64 --self-contained true
+
+    - name: Upload Release Artifact
+      uses: actions/upload-artifact@v4
+      with:
+        name: dbmig-win-x64
+        path: output/
 
     - name: Upload Coverage
       if: always()
