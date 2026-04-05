@@ -250,20 +250,57 @@ public class MigrationRepositoryTests
         Assert.That(_mockDatabaseAccessor.QueryAsyncCalls[3], Contains.Substring("INFORMATION_SCHEMA.VIEWS"));
         Assert.That(_mockDatabaseAccessor.QueryAsyncCalls[4], Contains.Substring("INFORMATION_SCHEMA.TABLES"));
 
-        // Should only execute DROP TABLE commands (3 tables)
-        Assert.That(_mockDatabaseAccessor.ExecuteAsyncCalls, Has.Count.EqualTo(3));
-        Assert.That(_mockDatabaseAccessor.ExecuteAsyncCalls.All(x => x.Contains("DROP TABLE")), Is.True);
+        // Should execute DROP commands for all object types:
+        // 1 FK + 1 function + 1 procedure + 1 view + 3 tables = 7
+        Assert.That(_mockDatabaseAccessor.ExecuteAsyncCalls, Has.Count.EqualTo(7));
+    }
+
+    [Test]
+    public async Task ClearAllUserTablesAsync_DropStatements_ContainFullyQualifiedNames()
+    {
+        // Regression test for GitHub Issue #1:
+        // Original bug: QueryAsync<string> only read first column (TABLE_SCHEMA),
+        // producing "DROP TABLE IF EXISTS [dbo]" instead of "DROP TABLE IF EXISTS [dbo].[TableName]"
+        _mockDatabaseAccessor.ExecuteAsyncReturnValue = 1;
+
+        var result = await _repository.ClearAllUserTablesAsync();
+
+        Assert.That(result, Is.True);
+
+        var executeCalls = _mockDatabaseAccessor.ExecuteAsyncCalls;
+
+        // FK constraint: must reference both schema.table and constraint name
+        Assert.That(executeCalls[0], Contains.Substring("[dbo].[Orders]"));
+        Assert.That(executeCalls[0], Contains.Substring("[FK_Orders_Customers]"));
+
+        // Function: must include schema and function name
+        Assert.That(executeCalls[1], Contains.Substring("DROP FUNCTION IF EXISTS [dbo].[GetTotal]"));
+
+        // Procedure: must include schema and procedure name
+        Assert.That(executeCalls[2], Contains.Substring("DROP PROCEDURE IF EXISTS [dbo].[UpdateStats]"));
+
+        // View: must include schema and view name
+        Assert.That(executeCalls[3], Contains.Substring("DROP VIEW IF EXISTS [dbo].[ActiveOrders]"));
+
+        // Tables: must include schema and table name for each
+        Assert.That(executeCalls[4], Contains.Substring("DROP TABLE IF EXISTS [dbo].[Table1]"));
+        Assert.That(executeCalls[5], Contains.Substring("DROP TABLE IF EXISTS [dbo].[Table2]"));
+        Assert.That(executeCalls[6], Contains.Substring("DROP TABLE IF EXISTS [dbo].[Table3]"));
     }
 
     [Test]
     public async Task ClearAllUserTablesAsync_WhenNoTables_ReturnsTrue()
     {
+        _mockDatabaseAccessor.ShouldReturnDatabaseObjects = false;
+
         var result = await _repository.ClearAllUserTablesAsync();
 
         Assert.That(result, Is.True);
         // ClearAllUserTablesAsync always queries for all 5 object types:
         // foreign keys, functions, procedures, views, tables
         Assert.That(_mockDatabaseAccessor.QueryAsyncCalls, Has.Count.EqualTo(5));
+        // No DROP statements should be executed when there are no objects
+        Assert.That(_mockDatabaseAccessor.ExecuteAsyncCalls, Has.Count.EqualTo(0));
     }
 
     [Test]

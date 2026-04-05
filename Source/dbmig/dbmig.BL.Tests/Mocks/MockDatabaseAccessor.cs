@@ -10,6 +10,7 @@ public class MockDatabaseAccessor : IDatabaseAccessor
     public bool ShouldDatabaseExist { get; set; } = false;
     public int ExecuteAsyncReturnValue { get; set; } = 1;
     public bool ExecuteInTransactionAsyncReturnValue { get; set; } = true;
+    public bool ShouldReturnDatabaseObjects { get; set; } = true;
 
     public List<string> QuerySingleAsyncCalls { get; } = new();
     public List<string> QueryAsyncCalls { get; } = new();
@@ -49,23 +50,62 @@ public class MockDatabaseAccessor : IDatabaseAccessor
             return Task.FromResult((IEnumerable<T>)(object)tables);
         }
 
-        // For dynamic queries (like the INFORMATION_SCHEMA query), return table objects
-        if (typeof(T) == typeof(object) && sql.Contains("INFORMATION_SCHEMA.TABLES"))
+        // For dynamic queries, return appropriate objects based on query type
+        if (typeof(T) == typeof(object) && ShouldReturnDatabaseObjects)
         {
-            dynamic table1 = new System.Dynamic.ExpandoObject();
-            table1.TABLE_SCHEMA = "dbo";
-            table1.TABLE_NAME = "Table1";
+            if (sql.Contains("sys.foreign_keys"))
+            {
+                dynamic fk1 = new System.Dynamic.ExpandoObject();
+                fk1.FK_Name = "FK_Orders_Customers";
+                fk1.Schema_Name = "dbo";
+                fk1.Table_Name = "Orders";
 
-            dynamic table2 = new System.Dynamic.ExpandoObject();
-            table2.TABLE_SCHEMA = "dbo";
-            table2.TABLE_NAME = "Table2";
+                return Task.FromResult((IEnumerable<T>)(object)new[] { fk1 });
+            }
 
-            dynamic table3 = new System.Dynamic.ExpandoObject();
-            table3.TABLE_SCHEMA = "dbo";
-            table3.TABLE_NAME = "Table3";
+            if (sql.Contains("ROUTINE_TYPE = 'FUNCTION'"))
+            {
+                dynamic func1 = new System.Dynamic.ExpandoObject();
+                func1.ROUTINE_SCHEMA = "dbo";
+                func1.ROUTINE_NAME = "GetTotal";
 
-            var tables = new[] { table1, table2, table3 };
-            return Task.FromResult((IEnumerable<T>)(object)tables);
+                return Task.FromResult((IEnumerable<T>)(object)new[] { func1 });
+            }
+
+            if (sql.Contains("ROUTINE_TYPE = 'PROCEDURE'"))
+            {
+                dynamic proc1 = new System.Dynamic.ExpandoObject();
+                proc1.ROUTINE_SCHEMA = "dbo";
+                proc1.ROUTINE_NAME = "UpdateStats";
+
+                return Task.FromResult((IEnumerable<T>)(object)new[] { proc1 });
+            }
+
+            if (sql.Contains("INFORMATION_SCHEMA.VIEWS"))
+            {
+                dynamic view1 = new System.Dynamic.ExpandoObject();
+                view1.TABLE_SCHEMA = "dbo";
+                view1.TABLE_NAME = "ActiveOrders";
+
+                return Task.FromResult((IEnumerable<T>)(object)new[] { view1 });
+            }
+
+            if (sql.Contains("INFORMATION_SCHEMA.TABLES"))
+            {
+                dynamic table1 = new System.Dynamic.ExpandoObject();
+                table1.TABLE_SCHEMA = "dbo";
+                table1.TABLE_NAME = "Table1";
+
+                dynamic table2 = new System.Dynamic.ExpandoObject();
+                table2.TABLE_SCHEMA = "dbo";
+                table2.TABLE_NAME = "Table2";
+
+                dynamic table3 = new System.Dynamic.ExpandoObject();
+                table3.TABLE_SCHEMA = "dbo";
+                table3.TABLE_NAME = "Table3";
+
+                return Task.FromResult((IEnumerable<T>)(object)new[] { table1, table2, table3 });
+            }
         }
 
         return Task.FromResult(Enumerable.Empty<T>());
@@ -120,6 +160,7 @@ public class MockDatabaseAccessor : IDatabaseAccessor
         ShouldDatabaseExist = false;
         ExecuteAsyncReturnValue = 1;
         ExecuteInTransactionAsyncReturnValue = true;
+        ShouldReturnDatabaseObjects = true;
 
         QuerySingleAsyncCalls.Clear();
         QueryAsyncCalls.Clear();
