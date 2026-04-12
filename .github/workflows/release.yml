@@ -119,7 +119,7 @@ jobs:
         run: mv publish/dbmig.Console publish/${{ matrix.artifact }} && chmod +x publish/${{ matrix.artifact }}
 
       - name: Upload artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: ${{ matrix.artifact }}
           path: publish/${{ matrix.artifact }}
